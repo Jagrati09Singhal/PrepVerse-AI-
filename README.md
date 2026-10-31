@@ -213,3 +213,15 @@ If an earlier process was not terminated, free the ports:
 ### Voice & Speech Permissions
 - Voice recording uses the browser's native Web Speech API. Ensure microphone access is permitted when prompted by your browser. If using an unsupported browser or microphone is disabled, text answering mode is available seamlessly.
 
+
+
+---
+
+## 👥 Project Contributors & Engineering Team
+
+| Contributor | GitHub Profile | Primary Contributions & Focus Areas |
+| :--- | :--- | :--- |
+| **Jagrati Singhal** | [@Jagrati09Singhal](https://github.com/Jagrati09Singhal) | System Architecture, FastAPI Backend, Adaptive Skill Verification, Database Modeling & Admin Telemetry |
+| **Ayush Gupta** | [@guptaayush006](https://github.com/guptaayush006) | Frontend Architecture, Gen-Z UI/UX Design, Multi-Modal Answering (MCQ/Voice), Speech Analytics & System Integration |
+
+*Both team members are equal co-authors and core contributors to the PrepVerse AI platform.*
