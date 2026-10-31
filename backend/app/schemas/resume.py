@@ -12,6 +12,7 @@ class ResumeListItem(BaseModel):
     parsing_status: str
     error_message: Optional[str] = None
     total_skills: int = 0
+    skills: List[str] = []
     uploaded_at: datetime.datetime
 
     model_config = ConfigDict(from_attributes=True)

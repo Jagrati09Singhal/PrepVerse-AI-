@@ -113,9 +113,8 @@ def list_resumes(
 
     items = []
     for r in resumes:
-        total_skills = 0
-        if r.parsed_skills and isinstance(r.parsed_skills, dict):
-            total_skills = len(r.parsed_skills.get("all_skills", []))
+        skills_list = r.parsed_skills.get('all_skills', []) if (r.parsed_skills and isinstance(r.parsed_skills, dict)) else []
+        total_skills = len(skills_list)
 
         items.append(
             ResumeListItem(
@@ -125,6 +124,7 @@ def list_resumes(
                 parsing_status=r.parsing_status,
                 error_message=r.error_message,
                 total_skills=total_skills,
+                skills=skills_list[:8],
                 uploaded_at=r.uploaded_at,
             )
         )

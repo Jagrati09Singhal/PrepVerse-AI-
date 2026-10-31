@@ -259,6 +259,7 @@ export default function AppShell({ view: explicitView }) {
           {activeTab === 'resumes' && (
             <ResumeWorkspace
               onResumesUpdated={(resumes) => setResumesList(resumes)}
+              onLaunchPractice={handleLaunchPractice}
             />
           )}
 
