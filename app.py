@@ -302,6 +302,27 @@ def wait_for_frontend(timeout=30):
     return False
 
 
+def free_port(port):
+    """Terminates any process occupying the specified network port to prevent conflicts."""
+    if sys.platform == "win32":
+        try:
+            cmd = f'powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort {port} -ErrorAction SilentlyContinue | ForEach-Object {{ Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }}"'
+            subprocess.run(cmd, shell=True, capture_output=True, check=False)
+        except Exception:
+            pass
+        try:
+            out = subprocess.check_output(f'netstat -ano | findstr ":{port}"', shell=True, text=True)
+            for line in out.strip().splitlines():
+                parts = line.strip().split()
+                if len(parts) >= 5 and "LISTENING" in line.upper():
+                    pid = parts[-1]
+                    if pid and pid != "0" and pid != str(os.getpid()):
+                        subprocess.run(["taskkill", "/F", "/T", "/PID", pid], capture_output=True, check=False)
+        except Exception:
+            pass
+    time.sleep(0.5)
+
+
 def kill_process_tree(proc):
     """Terminates a process and all its child processes cleanly across platforms."""
     if not proc:
@@ -309,7 +330,6 @@ def kill_process_tree(proc):
     pid = proc.pid
     try:
         if sys.platform == "win32":
-            # On Windows, taskkill /F /T kills the entire process tree cleanly
             subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True, check=False)
         else:
             proc.terminate()
@@ -338,6 +358,9 @@ def clean_shutdown(signum=None, frame=None):
     if frontend_process:
         log("Stopping React/Vite frontend server...", "info")
         kill_process_tree(frontend_process)
+
+    free_port(BACKEND_PORT)
+    free_port(FRONTEND_PORT)
 
     log("All services terminated. PrepVerse AI shut down cleanly.", "success")
     sys.exit(0)
@@ -386,19 +409,35 @@ def main():
     backend_running = is_port_in_use(BACKEND_HOST, BACKEND_PORT)
     frontend_running = is_port_in_use(FRONTEND_HOST, FRONTEND_PORT)
 
+    # Clear log files from prior runs so fresh ports are accurately detected
+    for log_path in ["backend_server.log", "frontend_server.log"]:
+        try:
+            with open(log_path, "w", encoding="utf-8") as lf:
+                lf.write("")
+        except Exception:
+            pass
+
     if backend_running:
-        log(f"Port {BACKEND_PORT} is currently in use. Checking if it's already running PrepVerse backend...", "warn")
         try:
             req = urllib.request.Request(BACKEND_HEALTH_URL)
             with urllib.request.urlopen(req, timeout=1.5) as resp:
                 if resp.status == 200:
                     log("Existing PrepVerse backend server detected and responsive on port 8000.", "info")
         except Exception:
-            log(f"Port {BACKEND_PORT} is occupied by another process. Please terminate it before continuing.", "error")
-            sys.exit(1)
+            log(f"Port {BACKEND_PORT} is occupied by an unresponsive process. Freeing port...", "warn")
+            free_port(BACKEND_PORT)
+            backend_running = False
 
     if frontend_running:
-        log(f"Port {FRONTEND_PORT} is currently in use.", "warn")
+        try:
+            req = urllib.request.Request(f"http://{FRONTEND_HOST}:{FRONTEND_PORT}")
+            with urllib.request.urlopen(req, timeout=1.5) as resp:
+                if resp.status == 200:
+                    log(f"Existing Vite frontend detected and responsive on port {FRONTEND_PORT}.", "info")
+        except Exception:
+            log(f"Port {FRONTEND_PORT} is occupied by a stale process. Freeing port...", "warn")
+            free_port(FRONTEND_PORT)
+            frontend_running = False
 
     # Start FastAPI Backend from backend/ directory to guarantee clean module loading
     if not backend_running:

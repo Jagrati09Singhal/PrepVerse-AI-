@@ -115,12 +115,15 @@ export default function InterviewWorkspace({
     }
 
     if (initialPracticeParams) {
-      if (initialPracticeParams.mode) setPracticeMode(initialPracticeParams.mode)
+      const targetMode = initialPracticeParams.mode || initialPracticeParams.practice_mode
+      if (targetMode) setPracticeMode(targetMode)
       if (initialPracticeParams.focus) setTargetFocus(initialPracticeParams.focus)
       if (initialPracticeParams.difficulty) setDifficulty(initialPracticeParams.difficulty)
-      if (initialPracticeParams.mode === 'quick_practice') setQuestionCount(3)
-      if (initialPracticeParams.mode === 'focused_technical') setSelectedTypes(['technical'])
-      if (initialPracticeParams.mode === 'skill_assessment') setPracticeMode('skill_assessment')
+      if (targetMode === 'quick_practice') setQuestionCount(3)
+      if (targetMode === 'focused_technical') setSelectedTypes(['technical'])
+      if (targetMode === 'skill_assessment') setPracticeMode('skill_assessment')
+      const targetResumeId = initialPracticeParams.resumeId || initialPracticeParams.resume_id
+      if (targetResumeId) setSelectedResumeId(targetResumeId)
       if (onResetPracticeParams) onResetPracticeParams()
     }
   }, [initialPracticeParams, onResetPracticeParams])

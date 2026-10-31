@@ -204,7 +204,9 @@ startxref
     localStorage.setItem('prepverse_target_resume', resume.id)
     if (onLaunchPractice) {
       onLaunchPractice({
+        mode: 'skill_assessment',
         practice_mode: 'skill_assessment',
+        resumeId: resume.id,
         resume_id: resume.id,
       })
     } else {
