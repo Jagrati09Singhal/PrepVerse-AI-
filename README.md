@@ -116,7 +116,7 @@ python app.py
 ```
 
 - 🌐 **Web Application:** `http://127.0.0.1:5174`
-- 🛡️ **Admin Control Hub:** `http://127.0.0.1:5174/app/admin` (Passcode: `PrepVerseAdmin2026!`)
+- 🛡️ **Admin Control Hub:** `http://127.0.0.1:5174/app/admin` 
 - 📖 **FastAPI Swagger API Docs:** `http://127.0.0.1:8000/docs`
 - 🩺 **Health Check:** `http://127.0.0.1:8000/health`
 
