@@ -27,6 +27,8 @@ import {
   Target,
   Zap,
   Check,
+  FolderGit2,
+  Languages,
 } from 'lucide-react'
 import { ENDPOINTS } from '../config/api'
 import { useAuth } from '../context/AuthContext'
@@ -35,6 +37,7 @@ import InterviewReport from './InterviewReport'
 import QuestionAudioPlayer from './QuestionAudioPlayer'
 import VoiceAnswerRecorder from './VoiceAnswerRecorder'
 import AICoachModal from './AICoachModal'
+import { getHindiQuestionTranslation } from '../utils/hindiTranslator'
 
 export default function InterviewWorkspace({
   initialPracticeParams,
@@ -73,6 +76,7 @@ export default function InterviewWorkspace({
   // Session & Simulation state
   const [activeSession, setActiveSession] = useState(null)
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0)
+  const [showHindiTranslation, setShowHindiTranslation] = useState(false)
   const [answerDraft, setAnswerDraft] = useState('')
   const [audioDurationSeconds, setAudioDurationSeconds] = useState(null)
   const [inputModeTab, setInputModeTab] = useState('voice') // 'voice' or 'text'
@@ -109,6 +113,9 @@ export default function InterviewWorkspace({
     if (modeParam === 'skill_assessment') {
       setPracticeMode('skill_assessment')
       setQuestionCount(5)
+    } else if (modeParam === 'project_deep_dive') {
+      setPracticeMode('project_deep_dive')
+      setQuestionCount(5)
     }
     if (resumeParam) {
       setSelectedResumeId(resumeParam)
@@ -122,6 +129,7 @@ export default function InterviewWorkspace({
       if (targetMode === 'quick_practice') setQuestionCount(3)
       if (targetMode === 'focused_technical') setSelectedTypes(['technical'])
       if (targetMode === 'skill_assessment') setPracticeMode('skill_assessment')
+      if (targetMode === 'project_deep_dive') setPracticeMode('project_deep_dive')
       const targetResumeId = initialPracticeParams.resumeId || initialPracticeParams.resume_id
       if (targetResumeId) setSelectedResumeId(targetResumeId)
       if (onResetPracticeParams) onResetPracticeParams()
@@ -568,13 +576,45 @@ export default function InterviewWorkspace({
                 )}
               </div>
 
-              {/* Spoken Audio Player */}
-              <QuestionAudioPlayer questionText={currentQ.question_text} autoPlay={false} />
+              {/* Spoken Audio Player & Hindi Translation Toggle */}
+              <div className="flex flex-wrap items-center gap-2">
+                <QuestionAudioPlayer questionText={currentQ.question_text} autoPlay={false} />
+
+                <button
+                  type="button"
+                  onClick={() => setShowHindiTranslation(!showHindiTranslation)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition shadow-sm ${
+                    showHindiTranslation
+                      ? 'bg-amber-500/15 border-amber-500 text-amber-700 dark:text-amber-300 ring-2 ring-amber-500/30'
+                      : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                  }`}
+                  title="Toggle Hindi/Hinglish translation of this question"
+                >
+                  <Languages className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <span>{showHindiTranslation ? 'English Only' : '🌐 हिंदी में देखें'}</span>
+                </button>
+              </div>
             </div>
 
             <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-relaxed">
               {currentQ.question_text}
             </p>
+
+            {/* Hindi Question Translation Callout */}
+            {showHindiTranslation && (
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-slate-800 dark:text-slate-200 text-sm leading-relaxed animate-fadeIn space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+                  <span className="flex items-center gap-1.5">
+                    <Languages className="w-3.5 h-3.5" />
+                    <span>🇮🇳 हिंदी तकनीकी अनुवाद (Bilingual Interview Aid)</span>
+                  </span>
+                  <span className="text-[10px] bg-amber-500/20 px-2 py-0.5 rounded-full font-mono">Hindi Technical View</span>
+                </div>
+                <p className="font-semibold text-slate-900 dark:text-amber-100 text-sm sm:text-base leading-snug">
+                  {getHindiQuestionTranslation(currentQ.question_text, currentQ.target_skill, currentQ.type)}
+                </p>
+              </div>
+            )}
 
             {/* Interactive Multiple Choice Option Cards */}
             {currentQ.format === 'mcq' && currentQ.options && currentQ.options.length > 0 && (
@@ -1213,11 +1253,14 @@ export default function InterviewWorkspace({
                   onChange={(e) => setSelectedResumeId(e.target.value)}
                   className="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-violet"
                 >
-                  {resumes.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.filename || 'PDF Resume'} ({r.parsed_skills ? r.parsed_skills.length : 0} skills extracted)
-                    </option>
-                  ))}
+                  {resumes.map((r) => {
+                    const skillCount = r.total_skills ?? r.skills?.length ?? (Array.isArray(r.parsed_skills) ? r.parsed_skills.length : r.parsed_skills?.all_skills?.length) ?? 0
+                    return (
+                      <option key={r.id} value={r.id}>
+                        {r.filename || 'PDF Resume'} ({skillCount} {skillCount === 1 ? 'skill' : 'skills'} extracted)
+                      </option>
+                    )
+                  })}
                 </select>
               )}
             </div>

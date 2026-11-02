@@ -69,6 +69,16 @@ export default function PublicNavbar() {
 
           {/* Right Action Controls */}
           <div className="hidden sm:flex items-center gap-3">
+            {/* Faculty / Admin Portal Access */}
+            <Link
+              to="/app/admin"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition shadow-sm"
+              title="Authorized Faculty & Placement Administrator Portal (jagratisinghal9@gmail.com)"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+              <span>Admin Portal</span>
+            </Link>
+
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}

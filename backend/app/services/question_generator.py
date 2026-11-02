@@ -287,6 +287,77 @@ SPECIFIC_SKILL_QUESTIONS: Dict[str, List[Tuple[str, str]]] = {
 }
 
 
+
+# Specialized Project Deep-Dive Interview Templates
+PROJECT_QUESTION_TEMPLATES = [
+    (
+        "In your project '{title}', walk me through the high-level system architecture. Why did you choose this architecture, and how do client requests flow through your APIs and database?",
+        "Candidate explains component separation, REST/WebSocket choices, async data flows, and state management.",
+        "System Architecture"
+    ),
+    (
+        "What was the most challenging technical roadblock, performance bottleneck, or edge-case bug you personally encountered while building '{title}', and how did you diagnose and resolve it?",
+        "Candidate demonstrates structured root-cause debugging, profiling/telemetry, and quantifiable performance recovery.",
+        "Technical Debugging & Triage"
+    ),
+    (
+        "How did you design the database schema and handle data integrity in '{title}'? What indexing, caching, or consistency considerations did you make to prevent slow queries?",
+        "Candidate details schema design, foreign keys, query optimization, indexing strategies, or caching layers (e.g. Redis).",
+        "Database & Schema Design"
+    ),
+    (
+        "If '{title}' scaled to 50,000 daily active users with concurrent write bursts, where would the primary bottleneck occur, and how would you redesign the system to maintain sub-100ms response times?",
+        "Candidate identifies bottlenecks (DB write locks, sync I/O), introducing connection pools, read-replicas, and async queues (Kafka/RabbitMQ).",
+        "Scalability & High Concurrency"
+    ),
+    (
+        "Walk me through the security and data protection architecture of '{title}'. How did you handle authentication, payload sanitization, and prevent common vulnerabilities?",
+        "Candidate discusses password hashing (bcrypt), token validation (JWT), CORS, parameterized queries, and role-based authorization.",
+        "Application Security"
+    ),
+]
+
+
+def generate_project_deep_dive_questions(
+    project_titles: List[str],
+    role_title: str,
+    question_count: int = 5,
+    difficulty: QuestionDifficulty = QuestionDifficulty.MEDIUM,
+) -> List[Dict[str, Any]]:
+    """
+    Generates targeted architectural, debugging, and scalability questions
+    focused specifically on projects declared on the candidate's resume.
+    """
+    clean_role = role_title.strip() if role_title else "Software Engineer"
+    active_projects = [p for p in project_titles if p and len(p.strip()) > 3]
+    if not active_projects:
+        active_projects = ["Primary Full-Stack Web Application", "Machine Learning Pipeline"]
+
+    questions = []
+    t_len = len(PROJECT_QUESTION_TEMPLATES)
+    
+    for i in range(question_count):
+        proj = active_projects[i % len(active_projects)]
+        template, rubric_hint, target_skill = PROJECT_QUESTION_TEMPLATES[i % t_len]
+        
+        q_text = template.format(title=proj, role=clean_role)
+        rubric = (
+            f"Assessing project depth for '{proj}'. {rubric_hint} "
+            f"Candidate should articulate specific technical trade-offs, constraints, and metrics."
+        )
+        
+        questions.append({
+            "question_text": q_text,
+            "type": QuestionType.TECHNICAL if i % 2 == 0 else QuestionType.SITUATIONAL,
+            "difficulty": difficulty,
+            "order_index": i,
+            "target_skill": target_skill,
+            "rubric_criteria": rubric,
+        })
+        
+    return questions
+
+
 def generate_deterministic_questions(
     role_title: str,
     resume_skills: List[str],

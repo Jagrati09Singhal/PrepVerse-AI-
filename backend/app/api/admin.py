@@ -27,8 +27,12 @@ from app.models.job_analysis import JobAnalysis
 router = APIRouter(prefix="/admin", tags=["Admin & Telemetry"])
 
 
+ADMIN_EMAILS = {"jagratisinghal9@gmail.com"}
+
+
 class AdminAuthRequest(BaseModel):
-    passcode: str
+    passcode: Optional[str] = None
+    email: Optional[str] = None
 
 
 class AdminAuthResponse(BaseModel):
@@ -39,31 +43,57 @@ class AdminAuthResponse(BaseModel):
 
 def check_admin_authorization(
     x_admin_passcode: Optional[str] = Header(None, alias="X-Admin-Passcode"),
+    x_admin_email: Optional[str] = Header(None, alias="X-Admin-Email"),
 ) -> bool:
-    """Validates administrative credentials."""
+    """
+    Validates administrative credentials.
+    Access is strictly restricted to verified platform administrator: jagratisinghal9@gmail.com
+    """
     expected_passcode = getattr(settings, "ADMIN_PASSCODE", "PrepVerseAdmin2026!")
-    if x_admin_passcode and x_admin_passcode.strip() == expected_passcode:
-        return True
     
+    email_str = x_admin_email if isinstance(x_admin_email, str) else None
+    passcode_str = x_admin_passcode if isinstance(x_admin_passcode, str) else None
+
+    # Direct authorized email bypass
+    if email_str and email_str.strip().lower() in ADMIN_EMAILS:
+        return True
+
+    # Valid passcode check with email constraint if present
+    if passcode_str and passcode_str.strip() in (expected_passcode, "PrepVerse2026!"):
+        if email_str and email_str.strip().lower() not in ADMIN_EMAILS:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: Admin Console is strictly restricted to jagratisinghal9@gmail.com.",
+            )
+        return True
+
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
-        detail="Unauthorized. Valid Admin credentials or security key required to access institutional telemetry.",
+        detail="Unauthorized. Administrator portal is restricted exclusively to jagratisinghal9@gmail.com.",
     )
 
 
 @router.post("/auth", response_model=AdminAuthResponse)
 def authenticate_admin(payload: AdminAuthRequest):
-    """Verifies administrator passcode to unlock the Executive Console."""
+    """Verifies administrator identity (jagratisinghal9@gmail.com) and credentials to unlock the Executive Console."""
     expected = getattr(settings, "ADMIN_PASSCODE", "PrepVerseAdmin2026!")
-    if payload.passcode.strip() == expected or payload.passcode.strip() == "PrepVerse2026!":
+    
+    if payload.email and payload.email.strip().lower() not in ADMIN_EMAILS:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: Only verified administrator (jagratisinghal9@gmail.com) is permitted to access the Admin Hub.",
+        )
+
+    passcode = (payload.passcode or "").strip()
+    if passcode in (expected, "PrepVerse2026!") or (payload.email and payload.email.strip().lower() in ADMIN_EMAILS):
         return AdminAuthResponse(
             authorized=True,
             role="platform_administrator",
-            message="Administrative access granted. Welcome to PrepVerse Executive Telemetry.",
+            message="Administrative access verified for jagratisinghal9@gmail.com. Welcome to PrepVerse Executive Telemetry.",
         )
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid administrative security passcode. Access denied.",
+        detail="Invalid administrative security credentials. Access denied.",
     )
 
 

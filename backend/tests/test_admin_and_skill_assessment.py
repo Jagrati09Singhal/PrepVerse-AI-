@@ -63,6 +63,19 @@ def test_admin_auth_direct():
     with pytest.raises(HTTPException):
         check_admin_authorization("invalid_code")
 
+    # Test jagratisinghal9@gmail.com authorization
+    admin_resp = authenticate_admin(AdminAuthRequest(email="jagratisinghal9@gmail.com"))
+    assert admin_resp.authorized is True
+    assert check_admin_authorization(x_admin_email="jagratisinghal9@gmail.com") is True
+
+    # Test unauthorized email rejection
+    with pytest.raises(HTTPException) as exc_blocked:
+        authenticate_admin(AdminAuthRequest(email="unauthorized_student@gmail.com"))
+    assert exc_blocked.value.status_code == 403
+
+    with pytest.raises(HTTPException):
+        check_admin_authorization(x_admin_passcode="PrepVerseAdmin2026!", x_admin_email="unauthorized_student@gmail.com")
+
 
 def test_admin_overview_and_students_direct(db_session: Session):
     # Add a mock user

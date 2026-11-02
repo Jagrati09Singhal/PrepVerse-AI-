@@ -155,6 +155,18 @@ export default function Home() {
               </Link>
             </div>
 
+            {/* Direct Faculty / Admin Console Link */}
+            <div className="pt-1">
+              <Link
+                to="/app/admin"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition shadow-sm"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+                <span>Faculty & Institutional Admin Portal</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+
             {/* Trust Micro-Metrics */}
             <div className="pt-8 flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs text-slate-500 dark:text-slate-400">
               <div className="flex items-center gap-2">

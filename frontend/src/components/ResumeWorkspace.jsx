@@ -18,6 +18,7 @@ import {
   Zap,
   ArrowRight,
   Play,
+  FolderGit2,
 } from 'lucide-react'
 import { ENDPOINTS } from '../config/api'
 import { useAuth } from '../context/AuthContext'
@@ -214,6 +215,20 @@ startxref
     }
   }
 
+  const handleLaunchProjectInterview = (resume) => {
+    localStorage.setItem('prepverse_target_resume', resume.id)
+    if (onLaunchPractice) {
+      onLaunchPractice({
+        mode: 'project_deep_dive',
+        practice_mode: 'project_deep_dive',
+        resumeId: resume.id,
+        resume_id: resume.id,
+      })
+    } else {
+      navigate('/app/interviews?mode=project_deep_dive&resume=' + resume.id)
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fadeIn text-left">
       {/* Top Banner */}
@@ -404,6 +419,14 @@ startxref
                   >
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>Skill Test</span>
+                  </button>
+                  <button
+                    onClick={() => handleLaunchProjectInterview(resume)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 transition"
+                    title="Practice targeted technical questions on projects from this resume"
+                  >
+                    <FolderGit2 className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+                    <span>Project Interview</span>
                   </button>
                   <button
                     onClick={() => handleViewDetail(resume.id)}

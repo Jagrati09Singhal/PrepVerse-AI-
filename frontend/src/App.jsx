@@ -151,11 +151,7 @@ export default function App() {
             />
             <Route
               path="/app/admin"
-              element={
-                <ProtectedRoute>
-                  <AppShell view="admin" />
-                </ProtectedRoute>
-              }
+              element={<AppShell view="admin" />}
             />
 
             {/* Convenient Aliases & Redirects */}
@@ -233,11 +229,7 @@ export default function App() {
             />
             <Route
               path="/admin"
-              element={
-                <ProtectedRoute>
-                  <Navigate to="/app/admin" replace />
-                </ProtectedRoute>
-              }
+              element={<Navigate to="/app/admin" replace />}
             />
 
             {/* Fallback Catch-All */}

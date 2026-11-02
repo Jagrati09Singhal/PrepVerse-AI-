@@ -29,7 +29,7 @@ from app.schemas.interview import (
 )
 from app.schemas.coach import CoachFeedbackRequest, CoachingFeedbackResponse
 from app.services.coach_service import generate_coaching_feedback
-from app.services.question_generator import generate_interview_questions
+from app.services.question_generator import generate_interview_questions, generate_project_deep_dive_questions
 from app.services.answer_evaluator import evaluate_answer
 from app.services.report_generator import generate_interview_report
 from app.services.pdf_generator import generate_pdf_report
@@ -263,6 +263,22 @@ def create_interview_session(
             weak_skills=user_weak_skills,
             question_count=question_count,
             previously_asked=previously_asked,
+        )
+    elif practice_mode == "project_deep_dive":
+        # Extract candidate projects directly from resume structured data or raw text
+        projects_data = (resume.structured_data or {}).get("projects", []) if isinstance(resume.structured_data, dict) else []
+        project_titles = [p.get("title") for p in projects_data if isinstance(p, dict) and p.get("title")]
+        if not project_titles:
+            for line in (resume.raw_text or "").splitlines():
+                if any(k in line.lower() for k in ("project:", "project -", "built a", "developed a", "architecture:")):
+                    cleaned = line.strip(" -•\t")
+                    if 10 < len(cleaned) < 100:
+                        project_titles.append(cleaned)
+        raw_questions = generate_project_deep_dive_questions(
+            project_titles=project_titles,
+            role_title=final_role,
+            question_count=question_count,
+            difficulty=payload.difficulty,
         )
     else:
         raw_questions = generate_interview_questions(
