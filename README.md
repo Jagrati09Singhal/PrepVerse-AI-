@@ -62,7 +62,7 @@ Instead of generating 500-word text essays that students passively skim, PrepVer
 - **STAR Speech Evaluations:** Measures speaking pace (WPM), duration, and content depth using native browser Web Speech transcription.
 
 ### 4. 🛡️ Faculty Admin & Cohort Telemetry
-An isolated, security-passcode authenticated hub (`PrepVerseAdmin2026!`) where mentors and placement cells can:
+An isolated, security-passcode authenticated hub where mentors and placement cells can:
 - Inspect total verified candidate accounts and average cohort readiness.
 - View top struggling topics across the student batch (e.g., *"40% struggling with SQL JOINs"*).
 - Filter the student roster by name, college year, and engineering branch.
