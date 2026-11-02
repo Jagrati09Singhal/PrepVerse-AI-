@@ -49,7 +49,7 @@ def build_genuine_walkthrough_pdf():
     # Project Identifiers Box
     p1.draw_rect(pymupdf.Rect(L_MARGIN, 150, R_MARGIN, 202), color=C_CARD_BORDER, fill=C_LIGHT_BG)
     p1.insert_text(pymupdf.Point(L_MARGIN + 14, 168), "CANDIDATES / AUTHORS:", fontsize=8.2, fontname="helv", color=C_MUTED)
-    p1.insert_text(pymupdf.Point(L_MARGIN + 160, 168), "Jagrati Singhal & Ayush Gupta (@guptaayush006)", fontsize=9, fontname="helv", color=C_NAVY)
+    p1.insert_text(pymupdf.Point(L_MARGIN + 160, 168), "Jagrati Singhal & Ayush Gupta", fontsize=9, fontname="helv", color=C_NAVY)
     p1.insert_text(pymupdf.Point(L_MARGIN + 14, 184), "GITHUB REPOSITORY:", fontsize=8.2, fontname="helv", color=C_MUTED)
     p1.insert_text(pymupdf.Point(L_MARGIN + 160, 184), "https://github.com/Jagrati09Singhal/PrepVerse-AI-.git (Branch: main)", fontsize=8.8, fontname="helv", color=C_BLUE)
     p1.insert_text(pymupdf.Point(L_MARGIN + 14, 198), "TECH-STACK RUNTIME:", fontsize=8.2, fontname="helv", color=C_MUTED)
@@ -221,19 +221,31 @@ def build_genuine_walkthrough_pdf():
     p4.insert_text(pymupdf.Point(L_MARGIN + 10, y + 11), "A. Mathematical Formulations & Measurement Formulas", fontsize=10.5, fontname="helv", color=C_NAVY)
     y += 20
 
-    math_box = (
-        "1. Speaking Pace Velocity (WPM):\n"
-        "   WPM = (Total Spoken Words / Audio Duration in Seconds) * 60\n"
-        "   Evaluation Tiers: < 100 WPM: Hesitant/Slow; 120 - 150 WPM: Optimal Professional Cadence; > 170 WPM: Rushed.\n\n"
-        "2. STAR Behavioral Rubric Scoring:\n"
-        "   Score = (0.20 * Situation) + (0.20 * Task) + (0.35 * Action) + (0.25 * Result)\n"
-        "   Ensures candidate actions and quantifiable business/engineering outcomes carry 60% of total response weight.\n\n"
-        "3. Composite Candidate Readiness Index:\n"
-        "   Readiness = (0.25 * Resume Credibility) + (0.25 * Job Overlap) + (0.30 * Mock Accuracy) + (0.20 * Mastery Trend)"
-    )
-    p4.draw_rect(pymupdf.Rect(L_MARGIN, y, R_MARGIN, y + 102), color=C_CARD_BORDER, fill=C_LIGHT_BG)
-    p4.insert_textbox(pymupdf.Rect(L_MARGIN + 12, y + 8, R_MARGIN - 12, y + 98), math_box, fontsize=8, fontname="helv", color=C_TEXT)
-    y += 114
+    formula_cards = [
+        ("1. Audio Speech Pace Velocity (WPM)",
+         "Formula: WPM = (Total Spoken Words / Audio Duration in Seconds) * 60",
+         "Evaluation Tiers: < 100 WPM: Hesitant/Slow  |  120 - 150 WPM: Optimal Professional Cadence  |  > 170 WPM: Rushed",
+         C_BLUE),
+        ("2. STAR Behavioral Rubric Weighted Scoring",
+         "Formula: Score = (0.20 * Situation) + (0.20 * Task) + (0.35 * Action) + (0.25 * Result)",
+         "Rationale: Action and Result dimensions carry 60% of total weight to assess individual contribution and impact.",
+         C_VIOLET),
+        ("3. Composite Candidate Readiness Index",
+         "Formula: Readiness = (0.25 * Resume) + (0.25 * JobMatch) + (0.30 * MockAccuracy) + (0.20 * MasteryTrend)",
+         "Target Benchmark: 85%+ indicates candidate is placement-ready across resume credibility and interview execution.",
+         C_EMERALD),
+    ]
+
+    card_h = 36
+    for f_title, f_form, f_sub, bar_color in formula_cards:
+        p4.draw_rect(pymupdf.Rect(L_MARGIN, y, R_MARGIN, y + card_h), color=C_CARD_BORDER, fill=C_LIGHT_BG)
+        p4.draw_rect(pymupdf.Rect(L_MARGIN, y, L_MARGIN + 3.5, y + card_h), color=bar_color, fill=bar_color)
+        p4.insert_text(pymupdf.Point(L_MARGIN + 12, y + 12), f_title, fontsize=8.5, fontname="helv", color=C_NAVY)
+        p4.insert_text(pymupdf.Point(L_MARGIN + 12, y + 23), f_form, fontsize=7.8, fontname="helv", color=C_TEXT)
+        p4.insert_text(pymupdf.Point(L_MARGIN + 12, y + 32), f_sub, fontsize=7.0, fontname="helv", color=C_MUTED)
+        y += card_h + 6
+
+    y += 10
 
     # Academic Year Question Calibration Table
     p4.draw_rect(pymupdf.Rect(L_MARGIN, y, L_MARGIN + 3.5, y + 14), color=C_EMERALD, fill=C_EMERALD)
