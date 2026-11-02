@@ -180,7 +180,24 @@ def create_interview_session(
             f"covering core competencies, system design, testing, and team leadership."
         )
 
-    resume_skills = resume.parsed_skills if isinstance(resume.parsed_skills, list) else []
+    # Extract skills list from parsed_skills (which can be dict, list, or JSON string)
+    if isinstance(resume.parsed_skills, dict):
+        resume_skills = resume.parsed_skills.get("all_skills", []) or []
+    elif isinstance(resume.parsed_skills, list):
+        resume_skills = resume.parsed_skills
+    elif isinstance(resume.parsed_skills, str):
+        try:
+            ps_parsed = json.loads(resume.parsed_skills)
+            if isinstance(ps_parsed, dict):
+                resume_skills = ps_parsed.get("all_skills", []) or []
+            elif isinstance(ps_parsed, list):
+                resume_skills = ps_parsed
+            else:
+                resume_skills = []
+        except Exception:
+            resume_skills = []
+    else:
+        resume_skills = []
 
     # 3. Practice Mode Handling
     practice_mode = getattr(payload, "practice_mode", "mock_interview") or "mock_interview"

@@ -1,10 +1,11 @@
 /**
  * Centralized API configuration.
- * Reads base URL from VITE_API_URL environment variable, falling back gracefully.
- * Never hardcodes production endpoints.
+ * Reads base URL from VITE_API_URL environment variable.
+ * When running in Vite dev mode on port 5173, defaults to http://127.0.0.1:8000.
+ * In production / unified deployment, uses relative path (empty string) to prevent CORS issues.
  */
 
-const rawApiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+const rawApiUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && window.location.port === '5173' ? 'http://127.0.0.1:8000' : '')
 
 // Ensure no trailing slash
 export const API_BASE_URL = rawApiUrl.replace(/\/+$/, '')

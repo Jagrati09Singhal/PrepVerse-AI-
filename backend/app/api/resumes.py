@@ -1,4 +1,5 @@
-from typing import List
+import json
+from typing import List, Dict, Any
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
@@ -113,7 +114,20 @@ def list_resumes(
 
     items = []
     for r in resumes:
-        skills_list = r.parsed_skills.get('all_skills', []) if (r.parsed_skills and isinstance(r.parsed_skills, dict)) else []
+        ps = r.parsed_skills
+        if isinstance(ps, str):
+            try:
+                ps = json.loads(ps)
+            except Exception:
+                ps = {}
+
+        if isinstance(ps, dict):
+            skills_list = ps.get('all_skills', []) or []
+        elif isinstance(ps, list):
+            skills_list = ps
+        else:
+            skills_list = []
+
         total_skills = len(skills_list)
 
         items.append(

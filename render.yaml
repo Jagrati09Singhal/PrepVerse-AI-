@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: prepverse-ai
+    runtime: python
+    buildCommand: "npm --prefix frontend install && npm --prefix frontend run build && pip install -r backend/requirements.txt"
+    startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    plan: free
+    region: oregon
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: NODE_VERSION
+        value: 20.12.0
+      - key: APP_NAME
+        value: "PrepVerse AI"
+      - key: DATABASE_URL
+        value: "sqlite:///./prepverse_dev.db"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_PASSCODE
+        value: "PrepVerseAdmin2026!"

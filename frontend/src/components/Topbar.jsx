@@ -189,7 +189,7 @@ export default function Topbar({
                   </p>
                   <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                     <Shield className="w-3 h-3 text-emerald-500" />
-                    <span className="truncate">UID: {user?.id?.slice(0, 8)}...</span>
+                    <span className="truncate">UID: {user?.id ? String(user.id).slice(0, 8) : 'GUEST'}...</span>
                   </div>
                 </div>
 

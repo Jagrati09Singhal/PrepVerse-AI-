@@ -1,6 +1,10 @@
+import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, JSONResponse
+
 from app.core.config import settings
 from app.api.health import router as health_router
 from app.api.auth import router as auth_router
@@ -53,12 +57,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configure CORS
+# Configure CORS with full support for deployed domains
 origins = settings.CORS_ORIGINS if isinstance(settings.CORS_ORIGINS, list) else [settings.CORS_ORIGINS]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -78,7 +83,6 @@ app.include_router(roadmap_router, prefix=settings.API_V1_PREFIX)
 app.include_router(admin_router, prefix=settings.API_V1_PREFIX)
 
 
-@app.get("/", tags=["Root"])
 def root():
     return {
         "name": settings.PROJECT_NAME,
@@ -96,6 +100,41 @@ def root():
             "roadmap": f"{settings.API_V1_PREFIX}/roadmap",
         },
     }
+
+
+# -------------------------------------------------------------------------
+# Production Frontend SPA Static Serving & Root Routing
+# -------------------------------------------------------------------------
+frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist"))
+has_frontend_build = os.path.exists(frontend_dist) and os.path.exists(os.path.join(frontend_dist, "index.html"))
+
+if has_frontend_build:
+    assets_dir = os.path.join(frontend_dist, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/", tags=["Root"])
+    async def get_root(request: Request):
+        accept = request.headers.get("accept", "")
+        if "text/html" in accept or "*/*" in accept:
+            return FileResponse(os.path.join(frontend_dist, "index.html"))
+        return JSONResponse(content=root())
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa(full_path: str, request: Request):
+        # Do not intercept API, documentation or health paths
+        if any(full_path.startswith(p) for p in ["api", "docs", "redoc", "openapi.json", "health"]):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=404, detail="Not Found")
+
+        target_file = os.path.join(frontend_dist, full_path)
+        if full_path and os.path.exists(target_file) and os.path.isfile(target_file):
+            return FileResponse(target_file)
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
+else:
+    @app.get("/", tags=["Root"])
+    def get_root():
+        return root()
 
 
 if __name__ == "__main__":

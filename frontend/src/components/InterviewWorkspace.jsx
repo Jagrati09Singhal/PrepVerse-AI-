@@ -1254,7 +1254,22 @@ export default function InterviewWorkspace({
                   className="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-brand-violet"
                 >
                   {resumes.map((r) => {
-                    const skillCount = r.total_skills ?? r.skills?.length ?? (Array.isArray(r.parsed_skills) ? r.parsed_skills.length : r.parsed_skills?.all_skills?.length) ?? 0
+                    let skillCount = r.total_skills
+                    if (skillCount === undefined || skillCount === null || skillCount === 0) {
+                      if (Array.isArray(r.skills) && r.skills.length > 0) skillCount = r.skills.length
+                      else if (Array.isArray(r.parsed_skills)) skillCount = r.parsed_skills.length
+                      else if (r.parsed_skills?.all_skills?.length) skillCount = r.parsed_skills.all_skills.length
+                      else if (typeof r.parsed_skills === 'string') {
+                        try {
+                          const p = JSON.parse(r.parsed_skills)
+                          skillCount = p?.all_skills?.length || (Array.isArray(p) ? p.length : 0)
+                        } catch (e) {
+                          skillCount = 0
+                        }
+                      } else {
+                        skillCount = 0
+                      }
+                    }
                     return (
                       <option key={r.id} value={r.id}>
                         {r.filename || 'PDF Resume'} ({skillCount} {skillCount === 1 ? 'skill' : 'skills'} extracted)
