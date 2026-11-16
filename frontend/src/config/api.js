@@ -21,6 +21,7 @@ export const ENDPOINTS = {
   AUTH_ME: `${API_BASE_URL}/api/v1/auth/me`,
   RESUMES: `${API_BASE_URL}/api/v1/resumes`,
   RESUME_DETAIL: (id) => `${API_BASE_URL}/api/v1/resumes/${id}`,
+  RESUME_REPORT_PDF: (id) => `${API_BASE_URL}/api/v1/resumes/${id}/report/pdf`,
   JOB_ANALYSES: `${API_BASE_URL}/api/v1/job-analyses`,
   JOB_ANALYSIS_DETAIL: (id) => `${API_BASE_URL}/api/v1/job-analyses/${id}`,
   INTERVIEWS: `${API_BASE_URL}/api/v1/interviews`,
@@ -44,4 +45,5 @@ export const ENDPOINTS = {
   ADMIN_AUTH: `${API_BASE_URL}/api/v1/admin/auth`,
   ADMIN_OVERVIEW: `${API_BASE_URL}/api/v1/admin/overview`,
   ADMIN_STUDENTS: `${API_BASE_URL}/api/v1/admin/students`,
+  ADMIN_EXPORT_CSV: `${API_BASE_URL}/api/v1/admin/export/csv`,
 }

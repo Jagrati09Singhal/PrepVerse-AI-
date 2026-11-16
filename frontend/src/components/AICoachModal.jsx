@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   Sparkles,
   X,
@@ -286,3 +286,4 @@ export default function AICoachModal({ data, onClose }) {
     </div>
   )
 }
+

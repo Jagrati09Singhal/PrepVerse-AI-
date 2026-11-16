@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { X, Lock, Mail, User as UserIcon, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import Logo from './Logo'
@@ -247,3 +247,4 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }) {
     </div>
   )
 }
+

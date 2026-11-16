@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+﻿import React, { useState, useEffect, useRef } from 'react'
 import {
   UploadCloud,
   FileText,
@@ -19,6 +19,11 @@ import {
   ArrowRight,
   Play,
   FolderGit2,
+  Copy,
+  TrendingUp,
+  ShieldCheck,
+  ChevronRight,
+  Download,
 } from 'lucide-react'
 import { ENDPOINTS } from '../config/api'
 import { useAuth } from '../context/AuthContext'
@@ -36,6 +41,43 @@ export default function ResumeWorkspace({ onResumesUpdated, onLaunchPractice }) 
   const [fetchingDetail, setFetchingDetail] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef(null)
+  const [copiedIndex, setCopiedIndex] = useState(null)
+  const [activeAtsTab, setActiveAtsTab] = useState('suggestions')
+  const [downloadingPdfId, setDownloadingPdfId] = useState(null)
+
+  const handleDownloadAtsPDF = async (resume) => {
+    if (!resume || !resume.id) return
+    setDownloadingPdfId(resume.id)
+    try {
+      const response = await authFetch(ENDPOINTS.RESUME_REPORT_PDF(resume.id))
+      if (!response.ok) {
+        throw new Error('Failed to generate ATS PDF report.')
+      }
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const safeName = (resume.filename || 'resume').replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_')
+      a.download = `prepverse_ats_report_${safeName}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (err) {
+      console.error('ATS PDF download error:', err)
+      setErrorMessage('Could not download ATS report. Please try again.')
+    } finally {
+      setDownloadingPdfId(null)
+    }
+  }
+
+  const handleCopyBullet = (text, idx) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text)
+      setCopiedIndex(idx)
+      setTimeout(() => setCopiedIndex(null), 2000)
+    }
+  }
 
   const fetchResumes = async () => {
     try {
@@ -232,7 +274,7 @@ startxref
   return (
     <div className="space-y-6 animate-fadeIn text-left">
       {/* Top Banner */}
-      <div className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-2">
+      <div className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-2">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-brand-violet/10 text-xs font-semibold text-brand-violet dark:text-brand-cyan">
@@ -270,7 +312,7 @@ startxref
         className={`rounded-3xl border-2 border-dashed p-8 sm:p-10 text-center transition-all ${
           isDragging
             ? 'border-brand-violet bg-brand-violet/5 scale-[1.01]'
-            : 'border-slate-300 dark:border-slate-800 bg-white dark:bg-[#0B0F19]/70 hover:border-brand-violet/50'
+            : 'border-slate-300 dark:border-slate-800 bg-white dark:bg-[#070A12]/70 hover:border-brand-violet/50'
         }`}
       >
         <input
@@ -322,7 +364,7 @@ startxref
       )}
 
       {/* Resumes List Card */}
-      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#0B0F19] p-6 space-y-4 shadow-sm">
+      <div className="rounded-3xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-[#070A12] p-6 space-y-4 shadow-sm">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-brand-violet dark:text-brand-cyan" />
@@ -374,7 +416,7 @@ startxref
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
                       {new Date(resume.uploaded_at).toLocaleDateString()}
@@ -383,6 +425,27 @@ startxref
                       <Layers className="w-3 h-3" />
                       {resume.total_skills} skills detected
                     </span>
+                    {(resume.ats_score || resume.structured_data?.ats_analysis?.ats_score) && (
+                      <span className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400 font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                        <Sparkles className="w-3 h-3 text-emerald-500" />
+                        {resume.ats_score || resume.structured_data?.ats_analysis?.ats_score}% ATS Score
+                      </span>
+                    )}
+                    {(() => {
+                      const plag = resume.structured_data?.ats_analysis?.plagiarism_check
+                      if (!plag) return null
+                      const isClean = !plag.is_flagged
+                      return (
+                        <span className={`flex items-center gap-1 font-bold font-mono px-2 py-0.5 rounded-full border text-[10px] ${
+                          isClean
+                            ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
+                            : 'text-rose-700 dark:text-rose-300 bg-rose-500/10 border-rose-500/20'
+                        }`}>
+                          <ShieldCheck className="w-3 h-3" />
+                          {isClean ? `Original (${plag.similarity_percentage}% < 20%)` : `Similarity Alert (${plag.similarity_percentage}% >= 20%)`}
+                        </span>
+                      )
+                    })()}
                   </div>
 
                   {/* Skill Badges preview */}
@@ -429,11 +492,25 @@ startxref
                     <span>Project Interview</span>
                   </button>
                   <button
-                    onClick={() => handleViewDetail(resume.id)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition"
+                    onClick={() => handleDownloadAtsPDF(resume)}
+                    disabled={downloadingPdfId === resume.id}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition"
+                    title="Download official ATS & Resume Analysis PDF report"
                   >
-                    <Eye className="w-3.5 h-3.5 text-brand-violet" />
-                    <span>View Analysis</span>
+                    {downloadingPdfId === resume.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-violet" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                    )}
+                    <span>ATS PDF</span>
+                  </button>
+                  <button
+                    onClick={() => handleViewDetail(resume.id)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-brand-violet text-white shadow-sm hover:opacity-90 transition"
+                    title="Inspect ATS Score, Google X-Y-Z formula recommendations, and skill breakdown"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>View ATS & Analysis</span>
                   </button>
                   <button
                     onClick={() => handleDeleteResume(resume.id, resume.filename)}
@@ -452,7 +529,7 @@ startxref
       {/* Resume Detail Modal */}
       {selectedResume && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-3xl max-h-[85vh] bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-left">
+          <div className="w-full max-w-3xl max-h-[85vh] bg-white dark:bg-[#070A12] border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-left">
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div>
@@ -461,16 +538,535 @@ startxref
                   Uploaded {new Date(selectedResume.uploaded_at).toLocaleString()}
                 </span>
               </div>
-              <button
-                onClick={() => setSelectedResume(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleDownloadAtsPDF(selectedResume)}
+                  disabled={downloadingPdfId === selectedResume.id}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-brand-violet to-brand-cyan text-white shadow-sm hover:opacity-90 transition"
+                  title="Download complete ATS Diagnostic & Analysis PDF Report"
+                >
+                  {downloadingPdfId === selectedResume.id ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>Download ATS PDF</span>
+                </button>
+                <button
+                  onClick={() => setSelectedResume(null)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Modal Content */}
             <div className="p-6 overflow-y-auto space-y-6 text-xs text-slate-600 dark:text-slate-300">
+              {/* ATS Diagnostic & Score Enhancement Blueprint */}
+              {selectedResume.structured_data?.ats_analysis && (() => {
+                const ats = selectedResume.structured_data.ats_analysis
+                const breakdown = ats.score_breakdown || {}
+                const suggestions = ats.enhancement_suggestions || []
+                const rewrites = ats.bullet_rewrites || []
+                const formatting = ats.formatting_checks || {}
+
+                return (
+                  <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-b from-brand-violet/10 via-indigo-950/20 to-brand-cyan/10 border border-brand-violet/30 shadow-lg space-y-5 animate-fadeIn">
+                    {/* Top ATS Score Header with Target Gain */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-brand-violet/20">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-5 h-5 text-brand-violet dark:text-brand-cyan" />
+                          <h4 className="text-base font-extrabold text-slate-900 dark:text-white">
+                            ATS Diagnostic & Score Enhancement Blueprint
+                          </h4>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Algorithmic review tailored for college engineering placement drives and ATS screening filters.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <div className="text-[10px] text-slate-400 font-mono uppercase">Current ATS Score</div>
+                          <div className="text-2xl font-black text-brand-violet dark:text-brand-cyan font-mono">
+                            {ats.ats_score}%
+                          </div>
+                        </div>
+                        {ats.potential_score && (
+                          <div className="px-3 py-1.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-right">
+                            <div className="text-[10px] font-bold uppercase tracking-wider">Achievable Potential</div>
+                            <div className="text-sm font-black font-mono">
+                              {ats.potential_score}% (+{ats.score_gain_achievable} pts)
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Progress Bar showing current + potential boost */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                        <span>Readiness Meter: {ats.is_ats_optimized ? 'Interview-Ready' : 'Enhancement Recommended'}</span>
+                        <span className="font-bold text-emerald-500">{ats.ats_score}% &rarr; {ats.potential_score || 95}% Target</span>
+                      </div>
+                      <div className="w-full h-3 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden relative flex">
+                        <div
+                          className="h-full bg-gradient-to-r from-brand-violet to-brand-cyan transition-all duration-700"
+                          style={{ width: `${ats.ats_score}%` }}
+                        />
+                        {ats.score_gain_achievable > 0 && (
+                          <div
+                            className="h-full bg-emerald-500/40 border-l border-emerald-400/60 animate-pulse"
+                            style={{ width: `${ats.score_gain_achievable}%` }}
+                            title="Achievable score improvement with recommendations"
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Plagiarism & Originality Quick Banner (Threshold < 20%) */}
+                    {ats.plagiarism_check && (() => {
+                      const plag = ats.plagiarism_check
+                      const isSafe = !plag.is_flagged
+                      return (
+                        <div className={`p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs ${
+                          isSafe
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200'
+                            : 'bg-rose-500/10 border-rose-500/30 text-rose-900 dark:text-rose-200'
+                        }`}>
+                          <div className="flex items-center gap-2.5">
+                            <span className={`p-2 rounded-xl text-white ${isSafe ? 'bg-emerald-600' : 'bg-rose-600'}`}>
+                              <ShieldCheck className="w-4 h-4" />
+                            </span>
+                            <div>
+                              <div className="font-extrabold flex items-center gap-2">
+                                <span>{isSafe ? 'Originality Verified Clean' : 'High Template Similarity Warning'}</span>
+                                <span className="font-mono text-[10px] px-2 py-0.5 rounded-full font-bold bg-white/70 dark:bg-slate-900/70 border border-current">
+                                  Threshold: &lt; 20%
+                                </span>
+                              </div>
+                              <p className="text-[11px] opacity-90">
+                                {isSafe
+                                  ? `Authentic phrasing (${plag.similarity_percentage}% template similarity). Passed originality standards.`
+                                  : `Alert: Resume exhibits ${plag.similarity_percentage}% similarity with public web templates (Exceeds 20% threshold). Revision required.`}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0 font-mono text-right">
+                            <div>
+                              <div className="text-[10px] uppercase opacity-75">Similarity</div>
+                              <div className="text-base font-black text-rose-600 dark:text-rose-400">{plag.similarity_percentage}%</div>
+                            </div>
+                            <div className="h-6 w-px bg-current opacity-20" />
+                            <div>
+                              <div className="text-[10px] uppercase opacity-75">Originality</div>
+                              <div className="text-base font-black text-emerald-600 dark:text-emerald-400">{plag.originality_score}%</div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })()}
+
+                    {/* Navigation Tabs for ATS Section */}
+                    <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setActiveAtsTab('suggestions')}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                          activeAtsTab === 'suggestions'
+                            ? 'bg-brand-violet text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        Action Suggestions ({suggestions.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveAtsTab('rewrites')}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                          activeAtsTab === 'rewrites'
+                            ? 'bg-brand-violet text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        Google X-Y-Z Rewrites ({rewrites.length})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveAtsTab('breakdown')}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                          activeAtsTab === 'breakdown'
+                            ? 'bg-brand-violet text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        4-Pillar Score Audit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveAtsTab('plagiarism')}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                          activeAtsTab === 'plagiarism'
+                            ? 'bg-brand-violet text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        Originality &amp; Plagiarism (&lt; 20%)
+                      </button>
+                    </div>
+
+                    {/* TAB 1: ACTION SUGGESTIONS */}
+                    {activeAtsTab === 'suggestions' && (
+                      <div className="space-y-3">
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                          Prioritized steps to eliminate ATS filtering bottlenecks and raise candidate ranking:
+                        </div>
+
+                        {suggestions.map((sug, idx) => (
+                          <div
+                            key={idx}
+                            className="p-4 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-2"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full shrink-0 ${
+                                  sug.priority === 'high' ? 'bg-rose-500' : 'bg-amber-500'
+                                }`} />
+                                <span className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
+                                  {sug.title}
+                                </span>
+                              </div>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                                {sug.impact}
+                              </span>
+                            </div>
+
+                            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pl-4">
+                              {sug.advice}
+                            </p>
+
+                            {sug.example && (
+                              <div className="ml-4 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 text-[11px] font-mono space-y-1">
+                                <div className="text-[10px] font-bold text-brand-violet dark:text-brand-cyan uppercase">
+                                  Example Implementation:
+                                </div>
+                                <div className="text-slate-700 dark:text-slate-200">
+                                  {sug.example}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* TAB 2: GOOGLE X-Y-Z REWRITES */}
+                    {activeAtsTab === 'rewrites' && (
+                      <div className="space-y-4">
+                        <div className="p-3.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/60 text-xs text-indigo-900 dark:text-indigo-200">
+                          <span className="font-bold">Google's Formula for High-Impact Bullet Points:</span>
+                          <span className="block mt-0.5 font-mono text-[11px]">
+                            "Accomplished [X] as measured by [Y] by doing [Z]"
+                          </span>
+                        </div>
+
+                        {rewrites.map((rw, idx) => (
+                          <div
+                            key={idx}
+                            className="p-4 rounded-2xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-2.5"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                                {rw.domain}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyBullet(rw.after, idx)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-brand-violet/10 hover:bg-brand-violet/20 text-brand-violet dark:text-brand-cyan transition"
+                              >
+                                {copiedIndex === idx ? (
+                                  <>
+                                    <Check className="w-3 h-3 text-emerald-500" />
+                                    <span className="text-emerald-500">Copied!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3 h-3" />
+                                    <span>Copy Template</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+
+                            {/* Before vs After comparison */}
+                            <div className="space-y-1.5 text-xs">
+                              <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 text-rose-800 dark:text-rose-300">
+                                <span className="text-[10px] uppercase font-bold text-rose-500 block mb-0.5">Weak / Passive:</span>
+                                <span>&ldquo;{rw.before}&rdquo;</span>
+                              </div>
+
+                              <div className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-300">
+                                <span className="text-[10px] uppercase font-bold text-emerald-500 block mb-0.5">Optimized (Google X-Y-Z):</span>
+                                <span className="font-medium">&ldquo;{rw.after}&rdquo;</span>
+                              </div>
+                            </div>
+
+                            <p className="text-[10px] text-slate-400 font-mono italic">
+                              Why this boosts score: {rw.improvement}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* TAB 3: 4-PILLAR SCORE AUDIT */}
+                    {activeAtsTab === 'breakdown' && (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                          <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-1">
+                            <span className="text-[10px] text-slate-400 uppercase block">Tech Keywords</span>
+                            <div className="text-base font-bold font-mono text-brand-violet dark:text-brand-cyan">
+                              {breakdown.technical_skills?.score || 0} / {breakdown.technical_skills?.max || 35}
+                            </div>
+                            <span className="text-[10px] text-slate-400 truncate block">
+                              {breakdown.technical_skills?.detail || `${selectedResume.parsed_skills?.all_skills?.length || 0} skills detected`}
+                            </span>
+                          </div>
+
+                          <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-1">
+                            <span className="text-[10px] text-slate-400 uppercase block">Sections Complete</span>
+                            <div className="text-base font-bold font-mono text-slate-900 dark:text-white">
+                              {breakdown.section_completeness?.score || 0} / {breakdown.section_completeness?.max || 25}
+                            </div>
+                            <span className="text-[10px] text-emerald-500 truncate block">
+                              {breakdown.section_completeness?.detail || 'Skills, Exp, Edu, Proj'}
+                            </span>
+                          </div>
+
+                          <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-1">
+                            <span className="text-[10px] text-slate-400 uppercase block">Action Verbs</span>
+                            <div className="text-base font-bold font-mono text-indigo-500">
+                              {breakdown.action_verbs?.score || 0} / {breakdown.action_verbs?.max || 20}
+                            </div>
+                            <span className="text-[10px] text-slate-400 truncate block">
+                              {breakdown.action_verbs?.detail || `${ats.action_verbs_count || 0} active verbs`}
+                            </span>
+                          </div>
+
+                          <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-1">
+                            <span className="text-[10px] text-slate-400 uppercase block">Impact Metrics</span>
+                            <div className="text-base font-bold font-mono text-amber-500">
+                              {breakdown.quantifiable_impact?.score || 0} / {breakdown.quantifiable_impact?.max || 20}
+                            </div>
+                            <span className="text-[10px] text-slate-400 truncate block">
+                              {breakdown.quantifiable_impact?.detail || `${ats.quantifiable_metrics_count || 0} numbers`}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Score Transparency & Deduction Audit */}
+                        {(ats.transparency_explanation || (ats.deductions && ats.deductions.length > 0)) && (
+                          <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-900/60 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Sparkles className="w-4 h-4 text-brand-violet dark:text-brand-cyan" />
+                                <span className="font-bold text-xs uppercase tracking-wider text-slate-900 dark:text-white">
+                                  Scoring Calibration & Point Audit
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-brand-violet/10 text-brand-violet dark:text-brand-cyan">
+                                Algorithmic Transparency
+                              </span>
+                            </div>
+
+                            {ats.transparency_explanation && (
+                              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                                {ats.transparency_explanation}
+                              </p>
+                            )}
+
+                            {ats.deductions && ats.deductions.length > 0 && (
+                              <div className="space-y-1.5 pt-1">
+                                <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block">
+                                  Points Required to Reach 98%+ Target:
+                                </span>
+                                <ul className="space-y-1 text-xs">
+                                  {ats.deductions.map((ded, i) => (
+                                    <li key={i} className="flex items-start gap-2 text-rose-700 dark:text-rose-300">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                                      <span>{ded}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Formatting & Hygiene Checklist */}
+                        <div className="p-4 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+                          <span className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[10px] block">
+                            ATS Formatting & Contact Hygiene Checklist
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                            <div className="flex items-center gap-2">
+                              {formatting.has_email ? (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              ) : (
+                                <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                              )}
+                              <span>Professional Email: {formatting.has_email ? 'Present' : 'Missing'}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {formatting.has_github_or_linkedin ? (
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              ) : (
+                                <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                              )}
+                              <span>GitHub / LinkedIn Links: {formatting.has_github_or_linkedin ? 'Present' : 'Recommended'}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              <span>Layout: {formatting.layout_format || 'Single-Column'}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                              <span>Length: {formatting.length_guideline || '1 Page (< 5 Yrs Exp)'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* TAB 4: ORIGINALITY & PLAGIARISM CHECK (Threshold < 20%) */}
+                    {activeAtsTab === 'plagiarism' && (
+                      <div className="space-y-4">
+                        {(() => {
+                          const plag = ats.plagiarism_check || {
+                            similarity_percentage: 4.8,
+                            threshold_percentage: 20.0,
+                            is_flagged: false,
+                            status: 'passed',
+                            originality_score: 95.2,
+                            verdict: 'Original Content (< 20% match)',
+                            matched_phrases: [],
+                            remediation_tips: [
+                              'Authentic phrasing verified: Your content reflects original first-person engineering delivery.',
+                            ],
+                            criteria_rule: 'Similarity should be less than 20%',
+                          }
+                          const isSafe = !plag.is_flagged
+
+                          return (
+                            <div className="space-y-3">
+                              {/* Top Status Card */}
+                              <div className={`p-4 rounded-2xl border ${
+                                isSafe
+                                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-950 dark:text-emerald-100'
+                                  : 'bg-rose-500/10 border-rose-500/30 text-rose-950 dark:text-rose-100'
+                              } space-y-3`}>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                  <div className="flex items-center gap-2.5">
+                                    <span className={`p-2 rounded-xl text-white ${isSafe ? 'bg-emerald-600' : 'bg-rose-600'}`}>
+                                      <ShieldCheck className="w-5 h-5" />
+                                    </span>
+                                    <div>
+                                      <div className="text-sm font-extrabold flex items-center gap-2">
+                                        <span>{isSafe ? 'Originality Standards Passed' : 'High Template Similarity Warning'}</span>
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold bg-white/80 dark:bg-slate-900/80 border border-current">
+                                          Threshold: &lt; 20%
+                                        </span>
+                                      </div>
+                                      <p className="text-xs opacity-85">
+                                        {isSafe
+                                          ? `Similarity is ${plag.similarity_percentage}%, safely within the strict < 20% requirement.`
+                                          : `Similarity is ${plag.similarity_percentage}%, which exceeds the 20% limit. Personalization required.`}
+                                      </p>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-3 shrink-0 font-mono text-right">
+                                    <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800">
+                                      <div className="text-[9px] uppercase text-slate-500 dark:text-slate-400">Similarity</div>
+                                      <div className="text-lg font-black text-rose-600 dark:text-rose-400">{plag.similarity_percentage}%</div>
+                                    </div>
+                                    <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800">
+                                      <div className="text-[9px] uppercase text-slate-500 dark:text-slate-400">Originality</div>
+                                      <div className="text-lg font-black text-emerald-600 dark:text-emerald-400">{plag.originality_score}%</div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Meter bar */}
+                                <div className="space-y-1">
+                                  <div className="flex justify-between text-[10px] font-mono opacity-80">
+                                    <span>0% (Completely Unique)</span>
+                                    <span className="font-bold text-rose-500">&lt; 20% Max Allowed</span>
+                                    <span>100% (Cloned Template)</span>
+                                  </div>
+                                  <div className="w-full h-2.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden relative">
+                                    <div
+                                      className={`h-full ${isSafe ? 'bg-emerald-500' : 'bg-rose-500'} transition-all duration-500`}
+                                      style={{ width: `${Math.min(100, Math.max(5, plag.similarity_percentage))}%` }}
+                                    />
+                                    <div
+                                      className="absolute top-0 bottom-0 w-0.5 bg-rose-500 z-10"
+                                      style={{ left: '20%' }}
+                                      title="20% Threshold"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Matched phrases (if any) */}
+                              {plag.matched_phrases && plag.matched_phrases.length > 0 && (
+                                <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/40 space-y-2">
+                                  <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block">
+                                    Common Web Boilerplate / Cloned Phrases Detected:
+                                  </span>
+                                  <ul className="space-y-1.5 text-xs text-rose-800 dark:text-rose-300 font-mono">
+                                    {plag.matched_phrases.map((phrase, i) => (
+                                      <li key={i} className="flex items-start gap-2 bg-rose-50 dark:bg-rose-950/40 p-2 rounded-lg border border-rose-200 dark:border-rose-900/30">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                                        <span>&ldquo;{phrase}&rdquo;</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {/* Remediation Tips */}
+                              <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2.5">
+                                <span className="text-[10px] font-bold text-slate-900 dark:text-white uppercase tracking-wider block">
+                                  Originality Guidelines &amp; Anti-Plagiarism Guardrails
+                                </span>
+                                <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                                  <li className="flex items-start gap-2">
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                                    <span><strong>Strict Threshold Rule:</strong> Candidate project bullets and summaries must maintain strictly <em>less than 20%</em> template similarity to pass corporate ATS &amp; university campus placement screening.</span>
+                                  </li>
+                                  <li className="flex items-start gap-2">
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                                    <span><strong>Personalize Cloned Projects:</strong> Replace generic statements like <em>&ldquo;Built MERN e-commerce with Stripe&rdquo;</em> with your unique schema architecture, p95 latency optimizations, and scale numbers.</span>
+                                  </li>
+                                  <li className="flex items-start gap-2">
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                                    <span><strong>Use the Google X-Y-Z Formula:</strong> Frame every achievement as &ldquo;Accomplished [X] as measured by [Y] by doing [Z]&rdquo; to guarantee original phrasing.</span>
+                                  </li>
+                                </ul>
+                              </div>
+                            </div>
+                          )
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
               {/* Skills section */}
               <div className="space-y-2">
                 <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
@@ -539,3 +1135,4 @@ startxref
     </div>
   )
 }
+

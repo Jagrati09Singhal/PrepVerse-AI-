@@ -7,9 +7,11 @@ Protects data access with Admin Passcode verification and prevents unauthorized 
 Surfaces aggregate cohort metrics, student performance rosters, and platform diagnostics.
 """
 
+import csv
+import io
 from typing import List, Dict, Any, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Header, status
+from fastapi import APIRouter, Depends, HTTPException, Header, status, Response
 from sqlalchemy.orm import Session as DBSession
 from sqlalchemy import select, func
 from pydantic import BaseModel
@@ -213,4 +215,53 @@ def list_admin_students(
         })
 
     return student_records
+
+
+@router.get("/export/csv")
+def export_cohort_csv(
+    db: DBSession = Depends(get_db),
+    authorized: bool = Depends(check_admin_authorization),
+):
+    """
+    Exports the comprehensive candidate performance roster as a clean CSV
+    for academic mentors, department heads, and campus placement cells.
+    """
+    students = list_admin_students(db=db, authorized=authorized)
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Candidate Name",
+        "Email",
+        "Academic Year",
+        "Engineering Branch",
+        "Ongoing Subjects",
+        "Resumes Uploaded",
+        "Interviews Attempted",
+        "Completed Sessions",
+        "Average Readiness Score",
+        "Readiness Tier",
+        "Identified Weak Topics",
+        "Joined At",
+    ])
+    for s in students:
+        writer.writerow([
+            s.get("name", ""),
+            s.get("email", ""),
+            s.get("academic_year", ""),
+            s.get("branch", ""),
+            s.get("ongoing_subjects", ""),
+            s.get("resumes_uploaded", 0),
+            s.get("interviews_attempted", 0),
+            s.get("completed_sessions", 0),
+            f"{s.get('average_score')}%" if s.get("average_score") is not None else "Not Assessed",
+            s.get("readiness_tier", ""),
+            ", ".join(s.get("identified_weak_skills", [])),
+            s.get("joined_at", ""),
+        ])
+
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="prepverse_cohort_telemetry.csv"'},
+    )
 

@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { LogOut, User } from 'lucide-react'
 import { APP_ENV } from '../config/api'
 import { useAuth } from '../context/AuthContext'
@@ -99,3 +99,4 @@ export default function Header({ systemHealth, onOpenAuth }) {
     </header>
   )
 }
+

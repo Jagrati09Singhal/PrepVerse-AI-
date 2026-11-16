@@ -18,13 +18,15 @@ import Onboarding from './pages/auth/Onboarding'
 
 // Authenticated Application Workspace Shell
 import AppShell from './pages/app/AppShell'
+import ErrorBoundary from './components/ErrorBoundary'
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <RouterProvider>
-          <Routes>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <RouterProvider>
+            <Routes>
             {/* Public Multi-Page Marketing & Discovery Routes */}
             <Route path="/" element={<Home />} />
             <Route path="/features" element={<Features />} />
@@ -238,5 +240,6 @@ export default function App() {
         </RouterProvider>
       </AuthProvider>
     </ThemeProvider>
+  </ErrorBoundary>
   )
 }

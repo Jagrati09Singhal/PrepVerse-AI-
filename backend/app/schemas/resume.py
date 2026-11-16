@@ -13,6 +13,8 @@ class ResumeListItem(BaseModel):
     error_message: Optional[str] = None
     total_skills: int = 0
     skills: List[str] = []
+    ats_score: Optional[int] = None
+    ats_potential: Optional[int] = None
     uploaded_at: datetime.datetime
 
     model_config = ConfigDict(from_attributes=True)

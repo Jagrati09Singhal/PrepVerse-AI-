@@ -21,9 +21,12 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { ENDPOINTS } from '../config/api'
+import TargetSkillFocusRadar from './TargetSkillFocusRadar'
 
 export default function Dashboard({ onSelectTab, onLaunchPractice }) {
   const { user, authFetch } = useAuth()
+  const [resumesList, setResumesList] = useState([])
+  const [jobsList, setJobsList] = useState([])
   const [stats, setStats] = useState({
     resumesCount: 0,
     jobsCount: 0,
@@ -65,6 +68,9 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
 
       // Extract skills needing improvement from analytics or lowest score sessions
       const weak = analyticsData?.weakest_skills || []
+
+      setResumesList(resumesData)
+      setJobsList(jobsData)
 
       setStats({
         resumesCount: resumesData.length,
@@ -120,21 +126,26 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
   return (
     <div className="space-y-8 animate-fadeIn text-left">
       {/* Welcome & Readiness Index Hero Banner */}
-      <div className="rounded-3xl p-6 sm:p-8 bg-white dark:bg-[#0F172A] border border-slate-200/90 dark:border-slate-800/90 shadow-sm relative overflow-hidden transition-colors">
-        {/* Decorative subtle ambient gradient */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-brand-violet/10 via-brand-cyan/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="rounded-3xl p-6 sm:p-8 bg-white dark:bg-[#0F172A] border border-slate-200/90 dark:border-slate-800/90 shadow-sm relative overflow-hidden transition-all">
+        {/* Decorative subtle ambient gradient in electric blue & violet tones */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-brand-violet/15 via-brand-cyan/10 to-transparent rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
           {/* Greeting info */}
           <div className="space-y-2 max-w-xl">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-mono">
                 {formattedDate}
               </span>
               <span className="text-slate-300 dark:text-slate-700">•</span>
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold border ${readinessTier.bg} ${readinessTier.color} ${readinessTier.border}`}>
                 <span className="w-1.5 h-1.5 rounded-full bg-current" />
                 {readinessTier.label}
+              </span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-violet/10 text-brand-violet dark:text-brand-cyan border border-brand-violet/20">
+                <Sparkles className="w-3 h-3 text-brand-violet" />
+                <span>Next-Gen Placement Intelligence</span>
               </span>
             </div>
 
@@ -149,7 +160,7 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
           </div>
 
           {/* Circular Readiness Gauge */}
-          <div className="flex items-center gap-5 p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shrink-0">
+          <div className="flex items-center gap-5 p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shrink-0 shadow-xs">
             <div className="relative w-24 h-24 flex items-center justify-center">
               <svg className="w-24 h-24 transform -rotate-90" viewBox="0 0 100 100">
                 {/* Background Track */}
@@ -161,7 +172,7 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
                   strokeWidth="8"
                   fill="transparent"
                 />
-                {/* Animated Gradient Stroke */}
+                {/* Animated Gradient Stroke in Sleek Violet/Cyan */}
                 <circle
                   cx="50"
                   cy="50"
@@ -177,7 +188,8 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
                 <defs>
                   <linearGradient id="readiness-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
                     <stop offset="0%" stopColor="#8B5CF6" />
-                    <stop offset="100%" stopColor="#06B6D4" />
+                    <stop offset="50%" stopColor="#06B6D4" />
+                    <stop offset="100%" stopColor="#38BDF8" />
                   </linearGradient>
                 </defs>
               </svg>
@@ -185,7 +197,7 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
                 <span className="text-xl font-extrabold text-slate-900 dark:text-white font-mono">
                   {readinessScore}%
                 </span>
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Index</span>
+                <span className="text-[9px] font-bold text-brand-violet dark:text-brand-cyan uppercase tracking-wider">Index</span>
               </div>
             </div>
 
@@ -208,18 +220,18 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
         </div>
 
         {/* 4 Readiness Pillars Checklist */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-6 mt-6 border-t border-slate-100 dark:border-slate-800/80">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-6 mt-6 border-t border-slate-200 dark:border-slate-800">
           {/* Pillar 1 */}
           <div
             onClick={() => onSelectTab && onSelectTab('resumes')}
             className={`p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
               hasResume
-                ? 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-brand-violet/50'
+                ? 'bg-brand-violet/10 dark:bg-brand-violet/20 border-brand-violet/30 text-brand-violet dark:text-brand-cyan'
+                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-brand-violet/50'
             }`}
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className={`p-1.5 rounded-xl ${hasResume ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
+              <div className={`p-1.5 rounded-xl ${hasResume ? 'bg-brand-violet/15 text-brand-violet dark:text-brand-cyan' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
                 {hasResume ? <Check className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
               </div>
               <div className="min-w-0 truncate">
@@ -235,12 +247,12 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
             onClick={() => onSelectTab && onSelectTab('job_analysis')}
             className={`p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
               hasJob
-                ? 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-brand-violet/50'
+                ? 'bg-brand-violet/10 dark:bg-brand-violet/20 border-brand-violet/30 text-brand-violet dark:text-brand-cyan'
+                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-brand-violet/50'
             }`}
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className={`p-1.5 rounded-xl ${hasJob ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
+              <div className={`p-1.5 rounded-xl ${hasJob ? 'bg-brand-violet/15 text-brand-violet dark:text-brand-cyan' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
                 {hasJob ? <Check className="w-4 h-4" /> : <Briefcase className="w-4 h-4" />}
               </div>
               <div className="min-w-0 truncate">
@@ -256,12 +268,12 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
             onClick={() => onSelectTab && onSelectTab('interviews')}
             className={`p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
               hasInterview
-                ? 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-brand-violet/50'
+                ? 'bg-brand-violet/10 dark:bg-brand-violet/20 border-brand-violet/30 text-brand-violet dark:text-brand-cyan'
+                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-brand-violet/50'
             }`}
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className={`p-1.5 rounded-xl ${hasInterview ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
+              <div className={`p-1.5 rounded-xl ${hasInterview ? 'bg-brand-violet/15 text-brand-violet dark:text-brand-cyan' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
                 {hasInterview ? <Check className="w-4 h-4" /> : <PlayCircle className="w-4 h-4" />}
               </div>
               <div className="min-w-0 truncate">
@@ -277,12 +289,12 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
             onClick={() => onSelectTab && onSelectTab('analytics')}
             className={`p-3 rounded-2xl border transition cursor-pointer flex items-center justify-between ${
               stats.avgScore >= 70
-                ? 'bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-500/20 text-emerald-700 dark:text-emerald-300'
-                : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-brand-violet/50'
+                ? 'bg-brand-violet/10 dark:bg-brand-violet/20 border-brand-violet/30 text-brand-violet dark:text-brand-cyan'
+                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:border-brand-violet/50'
             }`}
           >
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className={`p-1.5 rounded-xl ${stats.avgScore >= 70 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
+              <div className={`p-1.5 rounded-xl ${stats.avgScore >= 70 ? 'bg-brand-violet/15 text-brand-violet dark:text-brand-cyan' : 'bg-slate-200 dark:bg-slate-800 text-slate-400'}`}>
                 {stats.avgScore >= 70 ? <Check className="w-4 h-4" /> : <Award className="w-4 h-4" />}
               </div>
               <div className="min-w-0 truncate">
@@ -295,15 +307,22 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
         </div>
       </div>
 
-      {/* Quick Action Navigation Grid */}
+      {/* Target vs Known Skills Focus Radar (Dynamic Resume Skills vs Job Gaps + Reality Gap Calibrator) */}
+      <TargetSkillFocusRadar
+        resumes={resumesList}
+        jobAnalyses={jobsList}
+        onLaunchPractice={onLaunchPractice}
+      />
+
+      {/* Quick Action Navigation Grid in Sleek High-Tech Palette */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Action 1 */}
         <div
           onClick={() => onSelectTab && onSelectTab('interviews')}
-          className="p-5 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 hover:border-brand-violet/50 shadow-sm hover:shadow-md transition cursor-pointer space-y-3 group"
+          className="p-5 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200/90 dark:border-slate-800/90 hover:border-brand-violet/50 hover:shadow-lg hover:shadow-brand-violet/5 shadow-xs transition-all duration-200 cursor-pointer space-y-3 group"
         >
-          <div className="p-2.5 rounded-2xl bg-violet-500/10 text-brand-violet w-fit group-hover:scale-105 transition-transform">
-            <PlayCircle className="w-5 h-5 text-brand-cyan" />
+          <div className="p-2.5 rounded-2xl bg-gradient-to-br from-brand-violet/15 to-brand-blue/15 text-brand-violet dark:text-brand-cyan w-fit group-hover:scale-105 transition-transform">
+            <PlayCircle className="w-5 h-5 text-brand-violet dark:text-brand-cyan" />
           </div>
           <div className="space-y-1">
             <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-brand-violet dark:group-hover:text-brand-cyan transition">
@@ -318,13 +337,13 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
         {/* Action 2 */}
         <div
           onClick={() => onSelectTab && onSelectTab('roadmap')}
-          className="p-5 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 hover:border-brand-violet/50 shadow-sm hover:shadow-md transition cursor-pointer space-y-3 group"
+          className="p-5 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200/90 dark:border-slate-800/90 hover:border-brand-cyan/50 hover:shadow-lg hover:shadow-brand-cyan/5 shadow-xs transition-all duration-200 cursor-pointer space-y-3 group"
         >
-          <div className="p-2.5 rounded-2xl bg-indigo-500/10 text-indigo-500 w-fit group-hover:scale-105 transition-transform">
-            <Compass className="w-5 h-5" />
+          <div className="p-2.5 rounded-2xl bg-gradient-to-br from-brand-cyan/15 to-blue-500/15 text-brand-cyan w-fit group-hover:scale-105 transition-transform">
+            <Compass className="w-5 h-5 text-brand-cyan" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-500 transition">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-brand-cyan transition">
               Preparation Roadmap
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
@@ -336,13 +355,13 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
         {/* Action 3 */}
         <div
           onClick={() => onSelectTab && onSelectTab('coach')}
-          className="p-5 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 hover:border-brand-violet/50 shadow-sm hover:shadow-md transition cursor-pointer space-y-3 group"
+          className="p-5 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200/90 dark:border-slate-800/90 hover:border-brand-violet/50 hover:shadow-lg hover:shadow-brand-violet/5 shadow-xs transition-all duration-200 cursor-pointer space-y-3 group"
         >
-          <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-500 w-fit group-hover:scale-105 transition-transform">
-            <Sparkles className="w-5 h-5" />
+          <div className="p-2.5 rounded-2xl bg-gradient-to-br from-brand-violet/15 to-indigo-500/15 text-brand-violet dark:text-brand-cyan w-fit group-hover:scale-105 transition-transform">
+            <Sparkles className="w-5 h-5 text-brand-violet dark:text-brand-cyan" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-emerald-500 transition">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-brand-violet dark:group-hover:text-brand-cyan transition">
               AI Interview Coach
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
@@ -354,13 +373,13 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
         {/* Action 4 */}
         <div
           onClick={() => onSelectTab && onSelectTab('job_analysis')}
-          className="p-5 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 hover:border-brand-violet/50 shadow-sm hover:shadow-md transition cursor-pointer space-y-3 group"
+          className="p-5 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200/90 dark:border-slate-800/90 hover:border-pink-500/50 hover:shadow-lg hover:shadow-pink-500/5 shadow-xs transition-all duration-200 cursor-pointer space-y-3 group"
         >
-          <div className="p-2.5 rounded-2xl bg-cyan-500/10 text-brand-cyan w-fit group-hover:scale-105 transition-transform">
-            <Briefcase className="w-5 h-5" />
+          <div className="p-2.5 rounded-2xl bg-gradient-to-br from-pink-500/15 to-brand-violet/15 text-pink-500 dark:text-pink-400 w-fit group-hover:scale-105 transition-transform">
+            <Briefcase className="w-5 h-5 text-pink-500 dark:text-pink-400" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-brand-cyan transition">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-pink-500 dark:group-hover:text-pink-400 transition">
               Analyze Job Posting
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
@@ -392,14 +411,14 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
           </div>
 
           {loading ? (
-            <div className="p-12 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 text-center space-y-3">
+            <div className="p-12 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200/90 dark:border-slate-800/90 text-center space-y-3 shadow-xs">
               <Loader2 className="w-6 h-6 animate-spin text-brand-violet mx-auto" />
-              <p className="text-xs text-slate-500">Loading interview sessions...</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Loading interview sessions...</p>
             </div>
           ) : stats.recentSessions.length === 0 ? (
-            <div className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 text-center space-y-4 shadow-sm">
-              <div className="w-12 h-12 rounded-2xl bg-brand-violet/10 text-brand-violet flex items-center justify-center mx-auto">
-                <PlayCircle className="w-6 h-6 text-brand-cyan" />
+            <div className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200/90 dark:border-slate-800/90 text-center space-y-4 shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-brand-violet/10 dark:bg-brand-violet/20 text-brand-violet dark:text-brand-cyan flex items-center justify-center mx-auto">
+                <PlayCircle className="w-6 h-6 text-brand-violet dark:text-brand-cyan" />
               </div>
               <div className="space-y-1">
                 <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
@@ -412,7 +431,7 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
               </div>
               <button
                 onClick={() => onSelectTab && onSelectTab('interviews')}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-brand-violet to-brand-blue text-white shadow-sm hover:opacity-95 transition inline-flex items-center gap-1.5"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-brand-violet to-brand-blue hover:opacity-95 text-white shadow-sm transition inline-flex items-center gap-1.5"
               >
                 <PlayCircle className="w-3.5 h-3.5" />
                 <span>Launch First Interview</span>
@@ -424,7 +443,7 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
                 <div
                   key={session.id}
                   onClick={() => onSelectTab && onSelectTab('interviews')}
-                  className="p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 hover:border-brand-violet/40 transition cursor-pointer shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+                  className="p-4 rounded-2xl bg-white dark:bg-[#0F172A] border border-slate-200/90 dark:border-slate-800/90 hover:border-brand-violet/40 hover:shadow-sm transition cursor-pointer shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
                 >
                   <div className="space-y-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -434,13 +453,13 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           session.status === 'completed'
-                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                            : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                            : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
                         }`}
                       >
                         {session.status.toUpperCase()}
                       </span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                         {session.interview_mode === 'voice' ? '🎙️ Voice' : '📝 Text'}
                       </span>
                     </div>
@@ -476,7 +495,7 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
             <span>Recommended Focus</span>
           </h2>
 
-          <div className="p-5 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="p-5 rounded-3xl bg-white dark:bg-[#0F172A] border border-slate-200/90 dark:border-slate-800/90 shadow-sm space-y-4">
             <div className="space-y-1">
               <span className="text-xs font-bold text-slate-900 dark:text-white block">
                 Target Next Milestone
@@ -498,7 +517,7 @@ export default function Dashboard({ onSelectTab, onLaunchPractice }) {
                 else if (!hasJob) onSelectTab('job_analysis')
                 else onSelectTab('interviews')
               }}
-              className="w-full py-2.5 px-3 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white transition flex items-center justify-center gap-1.5"
+              className="w-full py-2.5 px-3 rounded-xl text-xs font-bold bg-gradient-to-r from-brand-violet to-brand-blue hover:opacity-95 text-white transition flex items-center justify-center gap-1.5 shadow-sm"
             >
               <span>Take Next Action</span>
               <ArrowRight className="w-3.5 h-3.5" />

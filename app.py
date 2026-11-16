@@ -21,6 +21,7 @@ import signal
 import shutil
 import json
 import re
+import argparse
 import urllib.request
 import urllib.error
 import subprocess
@@ -235,12 +236,15 @@ def is_port_in_use(host, port):
             return False
 
 
-def wait_for_service(url, service_name, timeout=30):
+def wait_for_service(url, service_name, timeout=30, proc=None):
     """Polls an HTTP endpoint until it returns status 200 or timeout expires."""
     start_time = time.time()
     log(f"Awaiting {service_name} readiness at {url}...", "step")
     while time.time() - start_time < timeout:
         if is_shutting_down:
+            return False
+        if proc and proc.poll() is not None:
+            log(f"{service_name} process exited prematurely with code {proc.poll()}.", "error")
             return False
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "PrepVerse-Launcher"})
@@ -257,7 +261,7 @@ def wait_for_service(url, service_name, timeout=30):
     return False
 
 
-def wait_for_frontend(timeout=30):
+def wait_for_frontend(timeout=30, proc=None):
     """Polls candidate Vite frontend URLs (including auto-fallback ports) until one returns status 200."""
     global FRONTEND_URL
     candidate_urls = [
@@ -270,6 +274,9 @@ def wait_for_frontend(timeout=30):
     log(f"Awaiting React/Vite Frontend readiness...", "step")
     while time.time() - start_time < timeout:
         if is_shutting_down:
+            return False
+        if proc and proc.poll() is not None:
+            log(f"React/Vite Frontend process exited prematurely with code {proc.poll()}.", "error")
             return False
 
         # Inspect frontend_server.log to see if Vite dynamically bound to a specific port
@@ -366,8 +373,58 @@ def clean_shutdown(signum=None, frame=None):
     sys.exit(0)
 
 
+def start_backend(dev_mode=False):
+    """Launches the FastAPI backend server using uvicorn."""
+    global backend_process
+    reload_str = f" ({Colors.GREEN}Auto-Reload Active{Colors.RESET})" if dev_mode else ""
+    log(f"Starting FastAPI backend on {BACKEND_HOST}:{BACKEND_PORT}{reload_str}...", "step")
+    cmd_backend = [
+        sys.executable,
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        BACKEND_HOST,
+        "--port",
+        str(BACKEND_PORT),
+    ]
+    if dev_mode:
+        cmd_backend.append("--reload")
+
+    try:
+        backend_log = open("backend_server.log", "w", encoding="utf-8")
+        backend_process = subprocess.Popen(
+            cmd_backend,
+            cwd=str(BACKEND_DIR),
+            env=os.environ.copy(),
+            stdout=backend_log,
+            stderr=backend_log,
+        )
+        log(f"FastAPI backend process launched (PID: {backend_process.pid})", "info")
+        return backend_process
+    except Exception as exc:
+        log(f"Failed to start backend: {exc}", "error")
+        sys.exit(1)
+
+
+def restart_backend(dev_mode=False):
+    """Restarts the FastAPI backend process cleanly."""
+    global backend_process
+    print()
+    log("Restarting FastAPI backend server...", "step")
+    if backend_process:
+        kill_process_tree(backend_process)
+        backend_process = None
+    free_port(BACKEND_PORT)
+    start_backend(dev_mode=dev_mode)
+    if wait_for_service(BACKEND_HEALTH_URL, "FastAPI Backend", timeout=20, proc=backend_process):
+        log("Backend restarted and operational!", "success")
+    else:
+        log("Backend restart verification timed out.", "warn")
+
+
 def print_demo_checklist():
-    """Prints a clear 10-step teacher demonstration workflow."""
+    """Prints a clear 10-step teacher demonstration workflow and reference credentials."""
     print(f"\n{Colors.VIOLET}{Colors.BOLD}+---------------------------------------------------------------------------+{Colors.RESET}", flush=True)
     print(f"{Colors.VIOLET}{Colors.BOLD}|                   TEACHER DEMONSTRATION FLOW CHECKLIST                    |{Colors.RESET}", flush=True)
     print(f"{Colors.VIOLET}{Colors.BOLD}+---------------------------------------------------------------------------+{Colors.RESET}", flush=True)
@@ -389,13 +446,34 @@ def print_demo_checklist():
     print(f"  {Colors.BOLD}Browser Interface:{Colors.RESET}    {Colors.GREEN}{FRONTEND_URL}{Colors.RESET}", flush=True)
     print(f"  {Colors.BOLD}FastAPI Swagger Docs:{Colors.RESET} {Colors.CYAN}{BACKEND_DOCS_URL}{Colors.RESET}", flush=True)
     print(f"  {Colors.BOLD}API Health Check:{Colors.RESET}     {Colors.CYAN}{BACKEND_HEALTH_URL}{Colors.RESET}", flush=True)
+    print(f"  {Colors.BOLD}Admin Telemetry Hub:{Colors.RESET}  {Colors.CYAN}{FRONTEND_URL}/app/admin{Colors.RESET}", flush=True)
+    print(f"  {Colors.BOLD}Admin Passcode:{Colors.RESET}       {Colors.YELLOW}PrepVerseAdmin2026!{Colors.RESET} (jagratisinghal9@gmail.com)", flush=True)
     print(f"{Colors.DIM}-----------------------------------------------------------------------------{Colors.RESET}", flush=True)
-    print(f"  {Colors.YELLOW}Press Ctrl+C in this terminal at any time to shut down all services cleanly.{Colors.RESET}\n", flush=True)
+    print(f"  {Colors.BOLD}Interactive Terminal Controls:{Colors.RESET}", flush=True)
+    print(f"    {Colors.GREEN}[r]{Colors.RESET} Restart Backend   {Colors.GREEN}[b]{Colors.RESET} Open Browser   {Colors.GREEN}[c]{Colors.RESET} Re-show Checklist   {Colors.GREEN}[q]{Colors.RESET} Clean Exit", flush=True)
+    print(f"{Colors.DIM}-----------------------------------------------------------------------------{Colors.RESET}", flush=True)
+    print(f"  {Colors.YELLOW}Press Ctrl+C or 'q' in this terminal at any time to shut down all services cleanly.{Colors.RESET}\n", flush=True)
 
 
 def main():
-    """Main launcher entry point."""
-    global backend_process, frontend_process
+    """Main launcher entry point with CLI options and interactive hotkeys."""
+    global backend_process, frontend_process, BACKEND_PORT, FRONTEND_PORT, BACKEND_HEALTH_URL, BACKEND_DOCS_URL, FRONTEND_URL
+
+    parser = argparse.ArgumentParser(description="PrepVerse AI — Unified Local Launcher & Demo Runner")
+    parser.add_argument("--dev", "--reload", action="store_true", dest="reload", help="Run FastAPI backend with Uvicorn auto-reload")
+    parser.add_argument("--no-browser", action="store_true", help="Do not automatically launch the web browser")
+    parser.add_argument("--backend-only", action="store_true", help="Launch only the FastAPI backend service")
+    parser.add_argument("--frontend-only", action="store_true", help="Launch only the React/Vite frontend service")
+    parser.add_argument("--port-backend", type=int, default=8000, help="Override FastAPI backend port (default: 8000)")
+    parser.add_argument("--port-frontend", type=int, default=5173, help="Override React/Vite frontend port (default: 5173)")
+    parser.add_argument("--verbose", action="store_true", help="Print recent server logs during launch")
+    args = parser.parse_args()
+
+    BACKEND_PORT = args.port_backend
+    FRONTEND_PORT = args.port_frontend
+    BACKEND_HEALTH_URL = f"http://{BACKEND_HOST}:{BACKEND_PORT}/health"
+    BACKEND_DOCS_URL = f"http://{BACKEND_HOST}:{BACKEND_PORT}/docs"
+    FRONTEND_URL = f"http://{FRONTEND_HOST}:{FRONTEND_PORT}"
 
     enable_windows_ansi()
     signal.signal(signal.SIGINT, clean_shutdown)
@@ -406,8 +484,8 @@ def main():
     check_database()
 
     # Verify ports
-    backend_running = is_port_in_use(BACKEND_HOST, BACKEND_PORT)
-    frontend_running = is_port_in_use(FRONTEND_HOST, FRONTEND_PORT)
+    backend_running = is_port_in_use(BACKEND_HOST, BACKEND_PORT) if not args.frontend_only else True
+    frontend_running = is_port_in_use(FRONTEND_HOST, FRONTEND_PORT) if not args.backend_only else True
 
     # Clear log files from prior runs so fresh ports are accurately detected
     for log_path in ["backend_server.log", "frontend_server.log"]:
@@ -417,18 +495,18 @@ def main():
         except Exception:
             pass
 
-    if backend_running:
+    if not args.frontend_only and backend_running:
         try:
             req = urllib.request.Request(BACKEND_HEALTH_URL)
             with urllib.request.urlopen(req, timeout=1.5) as resp:
                 if resp.status == 200:
-                    log("Existing PrepVerse backend server detected and responsive on port 8000.", "info")
+                    log(f"Existing PrepVerse backend server detected and responsive on port {BACKEND_PORT}.", "info")
         except Exception:
             log(f"Port {BACKEND_PORT} is occupied by an unresponsive process. Freeing port...", "warn")
             free_port(BACKEND_PORT)
             backend_running = False
 
-    if frontend_running:
+    if not args.backend_only and frontend_running:
         try:
             req = urllib.request.Request(f"http://{FRONTEND_HOST}:{FRONTEND_PORT}")
             with urllib.request.urlopen(req, timeout=1.5) as resp:
@@ -440,34 +518,11 @@ def main():
             frontend_running = False
 
     # Start FastAPI Backend from backend/ directory to guarantee clean module loading
-    if not backend_running:
-        log(f"Starting FastAPI backend on {BACKEND_HOST}:{BACKEND_PORT}...", "step")
-        cmd_backend = [
-            sys.executable,
-            "-m",
-            "uvicorn",
-            "app.main:app",
-            "--host",
-            BACKEND_HOST,
-            "--port",
-            str(BACKEND_PORT),
-        ]
-        try:
-            backend_log = open("backend_server.log", "w", encoding="utf-8")
-            backend_process = subprocess.Popen(
-                cmd_backend,
-                cwd=str(BACKEND_DIR),
-                env=os.environ.copy(),
-                stdout=backend_log,
-                stderr=backend_log,
-            )
-            log(f"FastAPI backend process launched (PID: {backend_process.pid})", "info")
-        except Exception as exc:
-            log(f"Failed to start backend: {exc}", "error")
-            sys.exit(1)
+    if not args.frontend_only and not backend_running:
+        start_backend(dev_mode=args.reload)
 
     # Start React/Vite Frontend
-    if not frontend_running:
+    if not args.backend_only and not frontend_running:
         log(f"Starting React/Vite frontend on {FRONTEND_HOST}:{FRONTEND_PORT}...", "step")
         npm_bin = shutil.which("npm") or shutil.which("npm.cmd")
         cmd_frontend = [npm_bin, "run", "dev", "--", "--host", FRONTEND_HOST, "--port", str(FRONTEND_PORT)]
@@ -489,51 +544,78 @@ def main():
             sys.exit(1)
 
     # Wait for services to respond
-    backend_ready = wait_for_service(BACKEND_HEALTH_URL, "FastAPI Backend", timeout=30)
-    if not backend_ready:
-        if os.path.exists("backend_server.log"):
-            try:
-                with open("backend_server.log", "r", encoding="utf-8", errors="ignore") as f:
-                    tail = f.read()[-1500:]
-                    if tail.strip():
-                        log(f"Recent backend server output:\n{tail}", "warn")
-            except Exception:
-                pass
-        clean_shutdown()
+    if not args.frontend_only:
+        backend_ready = wait_for_service(BACKEND_HEALTH_URL, "FastAPI Backend", timeout=30, proc=backend_process)
+        if not backend_ready:
+            if os.path.exists("backend_server.log"):
+                try:
+                    with open("backend_server.log", "r", encoding="utf-8", errors="ignore") as f:
+                        tail = f.read()[-1500:]
+                        if tail.strip():
+                            log(f"Recent backend server output:\n{tail}", "warn")
+                except Exception:
+                    pass
+            clean_shutdown()
 
-    frontend_ready = wait_for_frontend(timeout=30)
-    if not frontend_ready:
-        if os.path.exists("frontend_server.log"):
-            try:
-                with open("frontend_server.log", "r", encoding="utf-8", errors="ignore") as f:
-                    tail = f.read()[-1500:]
-                    if tail.strip():
-                        log(f"Recent frontend server output:\n{tail}", "warn")
-            except Exception:
-                pass
-        clean_shutdown()
+    if not args.backend_only:
+        frontend_ready = wait_for_frontend(timeout=30, proc=frontend_process)
+        if not frontend_ready:
+            if os.path.exists("frontend_server.log"):
+                try:
+                    with open("frontend_server.log", "r", encoding="utf-8", errors="ignore") as f:
+                        tail = f.read()[-1500:]
+                        if tail.strip():
+                            log(f"Recent frontend server output:\n{tail}", "warn")
+                except Exception:
+                    pass
+            clean_shutdown()
 
-    # Automatically launch browser
-    log(f"Opening default browser at {FRONTEND_URL}...", "step")
-    try:
-        webbrowser.open(FRONTEND_URL)
-        log("Browser launched successfully.", "success")
-    except Exception as exc:
-        log(f"Could not automatically open browser ({exc}). Please open {FRONTEND_URL} manually.", "warn")
+    # Automatically launch browser if not disabled
+    if not args.no_browser and not args.backend_only:
+        log(f"Opening default browser at {FRONTEND_URL}...", "step")
+        try:
+            webbrowser.open(FRONTEND_URL)
+            log("Browser launched successfully.", "success")
+        except Exception as exc:
+            log(f"Could not automatically open browser ({exc}). Please open {FRONTEND_URL} manually.", "warn")
 
     # Present demo checklist and URLs
     print_demo_checklist()
 
-    # Keep alive until Ctrl+C
+    # Setup non-blocking keyboard input check on Windows
+    try:
+        import msvcrt
+    except ImportError:
+        msvcrt = None
+
+    # Keep alive until Ctrl+C or 'q'
     try:
         while True:
-            time.sleep(1)
+            time.sleep(0.5)
+
+            # Keyboard shortcut handler on Windows
+            if msvcrt and msvcrt.kbhit():
+                try:
+                    key = msvcrt.getwch().lower()
+                    if key == "q":
+                        log("Exit command 'q' received. Initiating clean shutdown...", "info")
+                        clean_shutdown()
+                    elif key == "b":
+                        log(f"Opening browser at {FRONTEND_URL}...", "info")
+                        webbrowser.open(FRONTEND_URL)
+                    elif key == "c":
+                        print_demo_checklist()
+                    elif key == "r" and not args.frontend_only:
+                        restart_backend(dev_mode=args.reload)
+                except Exception:
+                    pass
+
             # Check if any child process unexpectedly died
             if backend_process and backend_process.poll() is not None:
-                log("FastAPI backend exited unexpectedly.", "error")
+                log(f"FastAPI backend exited unexpectedly with code {backend_process.poll()}.", "error")
                 clean_shutdown()
             if frontend_process and frontend_process.poll() is not None:
-                log("Frontend Vite server exited unexpectedly.", "error")
+                log(f"Frontend Vite server exited unexpectedly with code {frontend_process.poll()}.", "error")
                 clean_shutdown()
     except KeyboardInterrupt:
         clean_shutdown()
@@ -541,3 +623,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    

@@ -515,3 +515,34 @@ def test_delete_interview_session(
     # Verify session is deleted
     deleted_session = db_session.get(InterviewSession, session_detail.id)
     assert deleted_session is None
+
+
+def test_ai_cross_examination_drill_down_probe():
+    """Verifies dynamic AI follow-up probes generated from candidate's answer claims."""
+    from app.services.answer_evaluator import generate_drill_down_probe, evaluate_answer
+    from app.models.enums import QuestionType, QuestionDifficulty
+
+    # 1. Redis claim probe
+    redis_ans = "I used Redis to cache API results and prevent database overload."
+    probe1 = generate_drill_down_probe(
+        question_text="How do you handle backend scalability?",
+        answer_text=redis_ans,
+        target_skill="Backend",
+        question_type=QuestionType.TECHNICAL,
+    )
+    assert "Redis" in probe1["detected_claim"]
+    assert "thundering herd" in probe1["probe_question"].lower() or "stampede" in probe1["probe_question"].lower()
+
+    # 2. Integration into evaluate_answer evaluation_details
+    eval_result = evaluate_answer(
+        question_text="Tell me about your architectural choices.",
+        question_type=QuestionType.TECHNICAL,
+        difficulty=QuestionDifficulty.MEDIUM,
+        answer_text="We deployed containerized microservices using Docker and Kubernetes with automated CI/CD.",
+        target_skill="DevOps",
+    )
+    assert "evaluation_details" in eval_result
+    details = eval_result["evaluation_details"]
+    assert "drill_down_probe" in details
+    assert "Kubernetes" in details["drill_down_probe"]["detected_claim"] or "Docker" in details["drill_down_probe"]["detected_claim"]
+

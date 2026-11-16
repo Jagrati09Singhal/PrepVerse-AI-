@@ -1,7 +1,8 @@
+import re
 import json
 from typing import List, Dict, Any
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
@@ -130,6 +131,34 @@ def list_resumes(
 
         total_skills = len(skills_list)
 
+        # Dynamic calculation of ATS score if missing from older records
+        sd = r.structured_data
+        if isinstance(sd, str):
+            try:
+                sd = json.loads(sd)
+            except Exception:
+                sd = {}
+
+        ats_score = None
+        ats_potential = None
+        if isinstance(sd, dict):
+            ats_analysis = sd.get("ats_analysis")
+            if not ats_analysis and r.raw_text:
+                try:
+                    from app.services.resume_parser import calculate_ats_metrics, segment_resume_sections
+                    sections = segment_resume_sections(r.raw_text)
+                    ats_analysis = calculate_ats_metrics(r.raw_text, sections, ps if isinstance(ps, dict) else {})
+                    sd["ats_analysis"] = ats_analysis
+                    r.structured_data = sd
+                    db.add(r)
+                    db.commit()
+                except Exception:
+                    pass
+
+            if ats_analysis and isinstance(ats_analysis, dict):
+                ats_score = ats_analysis.get("ats_score")
+                ats_potential = ats_analysis.get("potential_score")
+
         items.append(
             ResumeListItem(
                 id=r.id,
@@ -139,6 +168,8 @@ def list_resumes(
                 error_message=r.error_message,
                 total_skills=total_skills,
                 skills=skills_list[:8],
+                ats_score=ats_score,
+                ats_potential=ats_potential,
                 uploaded_at=r.uploaded_at,
             )
         )
@@ -174,6 +205,28 @@ def get_resume(
             detail="Resume not found or access denied",
         )
 
+    # Dynamic backwards-compatibility check for ATS analysis
+    sd = resume.structured_data
+    if isinstance(sd, str):
+        try:
+            sd = json.loads(sd)
+            resume.structured_data = sd
+        except Exception:
+            sd = {}
+
+    if isinstance(sd, dict) and "ats_analysis" not in sd and resume.raw_text:
+        try:
+            from app.services.resume_parser import calculate_ats_metrics, segment_resume_sections
+            sections = segment_resume_sections(resume.raw_text)
+            ps = resume.parsed_skills if isinstance(resume.parsed_skills, dict) else {}
+            sd["ats_analysis"] = calculate_ats_metrics(resume.raw_text, sections, ps)
+            resume.structured_data = sd
+            db.add(resume)
+            db.commit()
+            db.refresh(resume)
+        except Exception:
+            pass
+
     return ResumeResponse.model_validate(resume)
 
 
@@ -207,3 +260,98 @@ def delete_resume(
     db.delete(resume)
     db.commit()
     return None
+
+@router.get(
+    "/{resume_id}/report/pdf",
+    response_class=Response,
+    status_code=status.HTTP_200_OK,
+    summary="Download comprehensive ATS & Resume Analysis PDF Report",
+)
+def download_resume_ats_pdf(
+    resume_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Generates and returns an ATS & Resume Diagnostic Audit PDF report
+    for an owned resume, strictly isolated to current_user.
+    """
+    resume = db.scalar(
+        select(Resume).where(
+            Resume.id == resume_id,
+            Resume.user_id == current_user.id,
+        )
+    )
+
+    if not resume:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Resume not found or access denied",
+        )
+
+    sd = resume.structured_data
+    if isinstance(sd, str):
+        try:
+            sd = json.loads(sd)
+        except Exception:
+            sd = {}
+
+    if not isinstance(sd, dict):
+        sd = {}
+
+    ps = resume.parsed_skills
+    if isinstance(ps, str):
+        try:
+            ps = json.loads(ps)
+        except Exception:
+            ps = {}
+
+    if not isinstance(ps, dict):
+        ps = {}
+
+    from app.services.resume_parser import calculate_ats_metrics, segment_resume_sections
+    sections = segment_resume_sections(resume.raw_text or "")
+    ats_analysis = calculate_ats_metrics(resume.raw_text or "", sections, ps)
+    sd["ats_analysis"] = ats_analysis
+    resume.structured_data = sd
+    db.add(resume)
+    db.commit()
+
+    report_payload = {
+        "filename": resume.filename,
+        "uploaded_at": resume.uploaded_at.isoformat() if resume.uploaded_at else "",
+        "user_email": current_user.email,
+        "user_name": getattr(current_user, "name", None) or getattr(current_user, "full_name", None) or "Candidate",
+        "raw_text": resume.raw_text or "",
+        "skills": ps,
+        "sections": sections,
+        "ats_analysis": ats_analysis,
+        "education": sd.get("education", []),
+        "experience": sd.get("experience", []),
+        "projects": sd.get("projects", []),
+        "certifications": sd.get("certifications", []),
+    }
+
+    from app.services.pdf_generator import generate_ats_pdf_report
+    try:
+        pdf_bytes = generate_ats_pdf_report(report_payload)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate ATS PDF report: {str(exc)}",
+        )
+
+    clean_name = re.sub(r'[^a-zA-Z0-9_\-.]', '_', resume.filename or 'resume')
+    if clean_name.lower().endswith(".pdf"):
+        clean_name = clean_name[:-4]
+    download_filename = f"prepverse_ats_report_{clean_name}.pdf"
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{download_filename}"',
+            "Cache-Control": "no-cache",
+        },
+    )
+

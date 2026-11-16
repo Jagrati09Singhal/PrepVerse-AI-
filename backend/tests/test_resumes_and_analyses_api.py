@@ -7,7 +7,7 @@ from starlette.datastructures import UploadFile
 from sqlalchemy.orm import Session
 
 from app.models.user import User
-from app.api.resumes import upload_resume, list_resumes, get_resume, delete_resume
+from app.api.resumes import upload_resume, list_resumes, get_resume, delete_resume, download_resume_ats_pdf
 from app.api.job_analyses import (
     create_job_analysis,
     list_job_analyses,
@@ -210,4 +210,44 @@ def test_job_analysis_cross_user_isolation(db_session: Session):
     with pytest.raises(HTTPException) as exc_del:
         delete_job_analysis(analysis_id=analysis_a.id, current_user=user_b, db=db_session)
     assert exc_del.value.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_download_resume_ats_pdf_success_and_isolation(db_session: Session):
+    """Verify that candidate can download ATS PDF report and cross-user access is denied."""
+    user_a = User(name="Candidate Alpha", email="calpha@example.com", password_hash="hash")
+    user_b = User(name="Candidate Beta", email="cbeta@example.com", password_hash="hash")
+    db_session.add_all([user_a, user_b])
+    db_session.commit()
+
+    resume_text = (
+        "Candidate Alpha\ncalpha@example.com | github.com/calpha\n\n"
+        "EDUCATION\nStanford University, B.S. Computer Science 2024\n\n"
+        "SKILLS\nPython, FastAPI, Docker, Kubernetes, PostgreSQL, Redis, React\n\n"
+        "EXPERIENCE\nSoftware Engineer Intern, CloudCorp\n"
+        "• Architected 10 REST APIs handling 50k requests with 35% latency drop.\n"
+        "• Automated CI/CD deployment pipelines using Docker.\n\n"
+        "PROJECTS\n"
+        "Microservices Hub: Built distributed backend in FastAPI.\n"
+    )
+    pdf_bytes = create_test_pdf(resume_text)
+    upload_file = make_upload_file(pdf_bytes, "alpha_resume.pdf")
+    resume_a = upload_resume(file=upload_file, current_user=user_a, db=db_session)
+
+    # 1. User A downloads their ATS PDF report: success
+    resp = download_resume_ats_pdf(resume_id=resume_a.id, current_user=user_a, db=db_session)
+    assert resp.status_code == status.HTTP_200_OK
+    assert resp.media_type == "application/pdf"
+    assert len(resp.body) > 1000
+    assert "attachment; filename=" in resp.headers.get("content-disposition", "")
+
+    # 2. User B tries to download User A's ATS PDF report: 404 access denied
+    with pytest.raises(HTTPException) as exc:
+        download_resume_ats_pdf(resume_id=resume_a.id, current_user=user_b, db=db_session)
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+
+    # 3. Nonexistent resume ID: 404
+    with pytest.raises(HTTPException) as exc_none:
+        download_resume_ats_pdf(resume_id=uuid.uuid4(), current_user=user_a, db=db_session)
+    assert exc_none.value.status_code == status.HTTP_404_NOT_FOUND
+
 

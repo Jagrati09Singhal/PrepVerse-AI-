@@ -584,6 +584,14 @@ def submit_answer(
             answer.evaluation_status = "failed"
             answer.feedback_text = "Evaluation failed due to an unexpected error. Your answer has been saved and can be re-evaluated."
 
+    if getattr(payload, "video_telemetry", None):
+        cur_details = dict(answer.evaluation_details) if answer.evaluation_details else {}
+        cur_details["video_telemetry"] = payload.video_telemetry
+        answer.evaluation_details = cur_details
+        sp = dict(answer.speech_analytics) if answer.speech_analytics else {}
+        sp["video_telemetry"] = payload.video_telemetry
+        answer.speech_analytics = sp
+
     db.commit()
     db.refresh(answer)
 

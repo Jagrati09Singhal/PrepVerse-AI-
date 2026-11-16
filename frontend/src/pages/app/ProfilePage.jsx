@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   User,
   Briefcase,
@@ -396,7 +396,7 @@ export default function ProfilePage({ isFirstTime = false }) {
     <div className="min-h-screen bg-slate-50/60 dark:bg-[#070A12] text-slate-900 dark:text-slate-100 py-10 px-4 sm:px-6 lg:px-8 transition-colors">
       <div className="max-w-4xl mx-auto space-y-8 animate-fadeIn">
         {/* Top Greeting Card */}
-        <div className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200/80 dark:border-slate-800/80 shadow-sm relative overflow-hidden">
+        <div className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200/80 dark:border-slate-800/80 shadow-sm relative overflow-hidden">
           {/* Subtle Ambient Glow */}
           <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-brand-violet/15 via-brand-cyan/10 to-transparent rounded-full blur-3xl pointer-events-none" />
 
@@ -431,7 +431,7 @@ export default function ProfilePage({ isFirstTime = false }) {
         </div>
 
         {/* Section 1: Target Career Role (Roles Mere According - Unlimited!) */}
-        <div className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-6">
+        <div className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-5">
             <div>
               <div className="flex items-center gap-2">
@@ -546,7 +546,7 @@ export default function ProfilePage({ isFirstTime = false }) {
         </div>
 
         {/* Section 2: College Academic Journey & Ongoing Studies ("Know You Better") */}
-        <div className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-8">
+        <div className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-8">
           <div className="border-b border-slate-100 dark:border-slate-800/80 pb-5">
             <div className="flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-brand-cyan/15 text-brand-cyan flex items-center justify-center text-xs font-bold">
@@ -784,7 +784,7 @@ export default function ProfilePage({ isFirstTime = false }) {
         </div>
 
         {/* Section 3: Seniority & Experience Level (Spacious, Uncongested Cards) */}
-        <div className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-6">
+        <div className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-6">
           <div className="border-b border-slate-100 dark:border-slate-800/80 pb-5">
             <div className="flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-brand-cyan/15 text-brand-cyan flex items-center justify-center text-xs font-bold">
@@ -844,7 +844,7 @@ export default function ProfilePage({ isFirstTime = false }) {
         </div>
 
         {/* Section 4: Target Prep Timeline & Daily Velocity */}
-        <div className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-6">
+        <div className="p-8 sm:p-10 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-6">
           <div className="border-b border-slate-100 dark:border-slate-800/80 pb-5">
             <div className="flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-brand-pink/15 text-brand-pink flex items-center justify-center text-xs font-bold">
@@ -1028,3 +1028,4 @@ export default function ProfilePage({ isFirstTime = false }) {
     </div>
   )
 }
+

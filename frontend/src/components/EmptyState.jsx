@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { FileText, Cpu, Shield, Database, ListChecks, LogIn, Sparkles, Compass } from 'lucide-react'
 import Logo from './Logo'
 
@@ -110,3 +110,4 @@ export default function EmptyState({ onOpenAuth }) {
     </div>
   )
 }
+

@@ -17,7 +17,7 @@ export function ThemeProvider({ children }) {
     } catch (e) {
       // fallback
     }
-    return 'dark' // default to modern deep navy
+    return 'dark' // default to original high-tech obsidian blue theme
   })
 
   useEffect(() => {

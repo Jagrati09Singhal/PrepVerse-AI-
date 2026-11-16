@@ -41,6 +41,7 @@ class AnswerSubmit(BaseModel):
     answer_text: str = Field(..., min_length=1, max_length=5000)
     audio_duration_seconds: Optional[float] = None
     pause_data: Optional[Dict[str, Any]] = None
+    video_telemetry: Optional[Dict[str, Any]] = None
 
 
 class AnswerEvaluationOut(BaseModel):

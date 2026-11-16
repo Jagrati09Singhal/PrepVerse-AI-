@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   User,
   Shield,
@@ -112,7 +112,7 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Profile Card */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="p-6 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+          <div className="p-6 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-violet via-brand-cyan to-brand-pink flex items-center justify-center text-xl font-black text-white shadow-lg shadow-brand-violet/20">
                 {user?.name ? user.name.slice(0, 2).toUpperCase() : 'PV'}
@@ -196,7 +196,7 @@ export default function SettingsPage() {
         {/* Right Column: Settings Sections */}
         <div className="lg:col-span-2 space-y-6">
           {/* Appearance & Theme */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+          <div className="p-6 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 {isDark ? <Moon className="w-5 h-5 text-brand-cyan" /> : <Sun className="w-5 h-5 text-amber-500" />}
@@ -247,7 +247,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Audio & Speech Synthesizer Preferences */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+          <div className="p-6 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Cpu className="w-5 h-5 text-brand-pink" />
@@ -307,7 +307,7 @@ export default function SettingsPage() {
           </div>
 
           {/* System Telemetry & Diagnostics */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+          <div className="p-6 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -381,4 +381,5 @@ export default function SettingsPage() {
     </div>
   )
 }
+
 

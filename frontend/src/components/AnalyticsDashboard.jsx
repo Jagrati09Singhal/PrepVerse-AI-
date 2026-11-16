@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   TrendingUp,
   Award,
@@ -471,3 +471,4 @@ export default function AnalyticsDashboard({ onLaunchPractice }) {
     </div>
   )
 }
+

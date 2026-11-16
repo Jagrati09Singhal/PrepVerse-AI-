@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+﻿import React, { useState, useEffect } from 'react'
 import {
   ShieldCheck,
   Database,
@@ -30,6 +30,8 @@ import {
   Terminal,
   Server,
   Zap,
+  Download,
+  FileSpreadsheet,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import { useRouter } from '../../context/RouterContext'
@@ -250,6 +252,38 @@ export default function AdminControlPage() {
     setTimeout(() => setWeightsSaved(false), 3000)
   }
 
+  const [exportingCsv, setExportingCsv] = useState(false)
+
+  const handleExportCohortCSV = async () => {
+    setExportingCsv(true)
+    const code = sessionStorage.getItem('prepverse_admin_passcode') || activeAdminPasscode
+    const email = sessionStorage.getItem('prepverse_admin_email') || AUTHORIZED_ADMIN_EMAIL
+    try {
+      const res = await fetch(ENDPOINTS.ADMIN_EXPORT_CSV, {
+        headers: {
+          'X-Admin-Passcode': code,
+          'X-Admin-Email': email,
+        },
+      })
+      if (!res.ok) {
+        throw new Error('Failed to export candidate CSV telemetry.')
+      }
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `prepverse_cohort_telemetry_${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      alert(`Export error: ${err.message}`)
+    } finally {
+      setExportingCsv(false)
+    }
+  }
+
   const filteredStudents = students.filter(
     (s) =>
       s.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -372,9 +406,9 @@ export default function AdminControlPage() {
   return (
     <div className="space-y-8 animate-fadeIn max-w-7xl mx-auto text-left">
       {/* Top Institutional Command Header */}
-      <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-b from-slate-900 via-[#070A12] to-[#0B0F19] border border-slate-800 shadow-2xl relative overflow-hidden text-white">
+      <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-b from-slate-900 via-[#070A12] to-[#070A12] border border-slate-800 shadow-2xl relative overflow-hidden text-white">
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-brand-violet/20 via-brand-cyan/20 to-transparent rounded-full blur-3xl pointer-events-none" />
-        
+
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start sm:items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-violet via-indigo-600 to-brand-cyan flex items-center justify-center text-white shadow-xl shadow-brand-violet/30 shrink-0">
@@ -452,7 +486,7 @@ export default function AdminControlPage() {
 
       {/* 4 Executive KPI Gauges */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="p-6 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-2">
+        <div className="p-6 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
             <span>Enrolled Candidates</span>
             <Users className="w-4 h-4 text-brand-blue" />
@@ -465,7 +499,7 @@ export default function AdminControlPage() {
           </div>
         </div>
 
-        <div className="p-6 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-2">
+        <div className="p-6 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
             <span>Mocks Conducted</span>
             <Play className="w-4 h-4 text-brand-violet" />
@@ -478,7 +512,7 @@ export default function AdminControlPage() {
           </div>
         </div>
 
-        <div className="p-6 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-2">
+        <div className="p-6 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
             <span>Cohort Readiness Avg</span>
             <Award className="w-4 h-4 text-emerald-500" />
@@ -491,7 +525,7 @@ export default function AdminControlPage() {
           </div>
         </div>
 
-        <div className="p-6 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-2">
+        <div className="p-6 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-semibold">
             <span>Verified Resumes</span>
             <FileText className="w-4 h-4 text-amber-500" />
@@ -508,7 +542,7 @@ export default function AdminControlPage() {
       {/* Two Column Layout: Curriculum Tuning & Weak Points Radar */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Placement Curriculum Weight Tuning */}
-        <div className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-5">
+        <div className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sliders className="w-5 h-5 text-brand-violet" />
@@ -602,7 +636,7 @@ export default function AdminControlPage() {
         </div>
 
         {/* Cohort Vulnerabilities & Skill Deficit Radar */}
-        <div className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-5">
+        <div className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-rose-500" />
@@ -638,7 +672,7 @@ export default function AdminControlPage() {
       </div>
 
       {/* Student Audit Roster */}
-      <div className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-[#0B0F19] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
+      <div className="p-6 sm:p-7 rounded-3xl bg-white dark:bg-[#070A12] border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div>
             <h3 className="text-base font-bold text-slate-900 dark:text-white">
@@ -649,14 +683,25 @@ export default function AdminControlPage() {
             </p>
           </div>
 
-          <div className="relative w-full sm:w-64">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search candidate or role..."
-              className="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-violet"
-            />
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full sm:w-auto">
+            <button
+              onClick={handleExportCohortCSV}
+              disabled={exportingCsv}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition disabled:opacity-50 shrink-0"
+              title="Download full cohort readiness telemetry as a CSV spreadsheet"
+            >
+              {exportingCsv ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
+              <span>{exportingCsv ? 'Exporting...' : 'Export Cohort CSV'}</span>
+            </button>
+            <div className="relative w-full sm:w-64">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search candidate or role..."
+                className="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand-violet"
+              />
+            </div>
           </div>
         </div>
 
@@ -691,11 +736,10 @@ export default function AdminControlPage() {
                   </td>
                   <td className="py-3 px-3 text-right">
                     <span
-                      className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        st.readiness_status === 'Placement-Ready'
+                      className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${st.readiness_status === 'Placement-Ready'
                           ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
                           : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                      }`}
+                        }`}
                     >
                       {st.readiness_status}
                     </span>
@@ -709,3 +753,4 @@ export default function AdminControlPage() {
     </div>
   )
 }
+

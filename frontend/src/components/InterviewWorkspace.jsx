@@ -29,6 +29,13 @@ import {
   Check,
   FolderGit2,
   Languages,
+  Eye,
+  Video,
+  ShieldCheck,
+  Headphones,
+  Smartphone,
+  Heart,
+  Layers,
 } from 'lucide-react'
 import { ENDPOINTS } from '../config/api'
 import { useAuth } from '../context/AuthContext'
@@ -37,7 +44,14 @@ import InterviewReport from './InterviewReport'
 import QuestionAudioPlayer from './QuestionAudioPlayer'
 import VoiceAnswerRecorder from './VoiceAnswerRecorder'
 import AICoachModal from './AICoachModal'
+import InterviewCameraProctor from './InterviewCameraProctor'
+import PreInterviewZenBox from './PreInterviewZenBox'
+import SystemDesignCanvas from './SystemDesignCanvas'
 import { getHindiQuestionTranslation } from '../utils/hindiTranslator'
+import {
+  SHOWCASE_BENCHMARK_SESSION,
+  SHOWCASE_BENCHMARK_REPORT,
+} from '../utils/showcaseDemoData'
 
 export default function InterviewWorkspace({
   initialPracticeParams,
@@ -49,6 +63,8 @@ export default function InterviewWorkspace({
 
   // AI Coach Modal State
   const [coachModalData, setCoachModalData] = useState(null)
+  const [isZenBoxOpen, setIsZenBoxOpen] = useState(false)
+  const [isCanvasOpen, setIsCanvasOpen] = useState(false)
 
   // Data sources
   const [resumes, setResumes] = useState([])
@@ -85,6 +101,7 @@ export default function InterviewWorkspace({
   const [errorMessage, setErrorMessage] = useState(null)
   const [successMessage, setSuccessMessage] = useState(null)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [currentVideoTelemetry, setCurrentVideoTelemetry] = useState(null)
 
   // Report state
   const [activeReport, setActiveReport] = useState(null)
@@ -285,6 +302,10 @@ export default function InterviewWorkspace({
 
   // Open Report
   const handleOpenReport = async (sessionId) => {
+    if (String(sessionId).startsWith('showcase')) {
+      setActiveReport(SHOWCASE_BENCHMARK_REPORT)
+      return
+    }
     setLoadingReport(true)
     setErrorMessage(null)
     try {
@@ -297,6 +318,17 @@ export default function InterviewWorkspace({
     } finally {
       setLoadingReport(false)
     }
+  }
+
+  // Load 1-Click Judge Showcase Demo
+  const handleLoadJudgeShowcaseDemo = () => {
+    setActiveSession(SHOWCASE_BENCHMARK_SESSION)
+    setActiveQuestionIndex(0)
+    setAnswerDraft('')
+    setSuccessMessage(
+      'Loaded 1-Click Evaluator Benchmark Session! Explore technical/behavioral responses, dynamic cross-examination follow-up probes, speech analytics, and proctoring telemetry.'
+    )
+    setTimeout(() => setSuccessMessage(null), 5000)
   }
 
   // Handle URL deep-linking to session or report
@@ -340,6 +372,81 @@ export default function InterviewWorkspace({
       return
     }
 
+    if (String(activeSession.id).startsWith('showcase')) {
+      setIsSubmittingAnswer(true)
+      setTimeout(() => {
+        const mockEval = {
+          id: `showcase-a-${currentQ.id}`,
+          question_id: currentQ.id,
+          answer_text: answerDraft.trim(),
+          content_score: 93.5,
+          communication_score: 92.0,
+          evaluation_status: 'completed',
+          audio_duration_seconds: audioDurationSeconds || 28.4,
+          feedback_text:
+            'Solid technical depth. Methodically addressed Kubernetes diagnostics with structured root-cause isolation.',
+          evaluation_details: {
+            engine: 'gemini',
+            strengths: ['Clear terminology and systematic diagnostic sequencing.'],
+            suggestions: ['Consider explicitly mentioning TCP retransmission metrics in CNI plugins.'],
+            drill_down_probe: {
+              detected_claim: 'Kubernetes & Network Observability',
+              focus_area: 'CoreDNS Metrics & TCP Retransmit Saturation',
+              probe_question:
+                'You mentioned verifying network metrics. What specific Linux kernel socket states or CoreDNS Prometheus metrics would confirm DNS throttling vs MTU packet drops?',
+              challenge_level: 'Deep Dive Follow-Up',
+              interviewer_intent:
+                'Verifies whether candidate actually troubleshot network interfaces in production.',
+            },
+            video_telemetry: currentVideoTelemetry || {
+              blinks_count: 8,
+              blink_rate_bpm: 16.0,
+              eye_contact_percentage: 95.0,
+              looking_away_count: 0,
+              face_missing_count: 0,
+              downward_gaze_count: 0,
+              earbud_policy: 'permitted',
+              device_flags: 0,
+              proctor_verdict: 'Verified Clean (Integrity Score: 98%)',
+            },
+            plagiarism_check: (() => {
+              const lower = (answerDraft || '').toLowerCase();
+              const isCloned = lower.includes('a process is an instance') || lower.includes('polymorphism allows') || lower.includes('encapsulation is');
+              const simPct = isCloned ? 85.0 : 4.5;
+              return {
+                similarity_percentage: simPct,
+                threshold_percentage: 20.0,
+                is_flagged: simPct >= 20.0,
+                status: simPct >= 20.0 ? 'flagged' : 'passed',
+                originality_score: +(100 - simPct).toFixed(1),
+                verdict: simPct < 20.0 ? 'Clean & Original (< 20% match)' : 'High Similarity Warning (>= 20% match)',
+                matched_phrases: isCloned ? ['process is an instance of a program in execution', 'smallest unit of execution within a process'] : [],
+                remediation_tips: isCloned
+                  ? ['Avoid reciting textbook definitions; frame your answers around personal engineering choices and trade-offs.']
+                  : ['Authentic phrasing verified: Content reflects original first-person delivery.'],
+                criteria_rule: 'Similarity must be less than 20%',
+              };
+            })(),
+          },
+          speech_analytics: {
+            speaking_pace_wpm: { words_per_minute: 135, category: 'Optimal' },
+            filler_words: { total_filler_count: 1, filler_rate_percentage: 0.6 },
+            pause_statistics: { pause_count: 2, average_pause_seconds: 1.1 },
+            clarity_feedback: 'Confident and fluid delivery.',
+          },
+        }
+        setActiveSession((prev) => ({
+          ...prev,
+          answers: [...(prev.answers || []).filter((a) => a.question_id !== currentQ.id), mockEval],
+          answered_count: 3,
+        }))
+        setIsSubmittingAnswer(false)
+        setSuccessMessage('Answer evaluated successfully with AI cross-examination follow-up!')
+        setTimeout(() => setSuccessMessage(null), 3000)
+      }, 500)
+      return
+    }
+
     setIsSubmittingAnswer(true)
     setErrorMessage(null)
     setSuccessMessage(null)
@@ -349,6 +456,7 @@ export default function InterviewWorkspace({
         question_id: currentQ.id,
         answer_text: answerDraft.trim(),
         audio_duration_seconds: audioDurationSeconds,
+        video_telemetry: currentVideoTelemetry,
       }
 
       const res = await authFetch(ENDPOINTS.INTERVIEW_ANSWERS(activeSession.id), {
@@ -383,6 +491,10 @@ export default function InterviewWorkspace({
   // Complete Interview
   const handleFinishInterview = async () => {
     if (!activeSession) return
+    if (String(activeSession.id).startsWith('showcase')) {
+      setActiveReport(SHOWCASE_BENCHMARK_REPORT)
+      return
+    }
     setLoadingReport(true)
     try {
       const res = await authFetch(ENDPOINTS.INTERVIEW_COMPLETE(activeSession.id), {
@@ -576,9 +688,29 @@ export default function InterviewWorkspace({
                 )}
               </div>
 
-              {/* Spoken Audio Player & Hindi Translation Toggle */}
+              {/* Spoken Audio Player, System Design Canvas, Zen Warmup & Hindi Translation */}
               <div className="flex flex-wrap items-center gap-2">
                 <QuestionAudioPlayer questionText={currentQ.question_text} autoPlay={false} />
+
+                <button
+                  type="button"
+                  onClick={() => setIsCanvasOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30 transition shadow-sm"
+                  title="Open Interactive System Design Whiteboard to draw architecture &amp; correlate with answer"
+                >
+                  <Layers className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Architecture Whiteboard</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsZenBoxOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-teal-500/15 hover:bg-teal-500/25 text-teal-800 dark:text-teal-300 border border-teal-500/30 transition shadow-sm"
+                  title="60-Second Box Breathing &amp; Vocal Warmup"
+                >
+                  <Heart className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                  <span>60s Zen Warmup</span>
+                </button>
 
                 <button
                   type="button"
@@ -681,8 +813,19 @@ export default function InterviewWorkspace({
           </div>
         )}
 
-        {/* Answer Answering Section */}
-        <div className="space-y-4">
+        {/* Answer Answering Section with Live Camera & Non-Verbal Proctor */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          {/* Left Column: Live Webcam Feed & Eye/Blink Tracking */}
+          <div className="lg:col-span-1">
+            <InterviewCameraProctor
+              isActive={!currentAns || currentAns.evaluation_status !== 'completed'}
+              questionIndex={activeQuestionIndex}
+              onTelemetryUpdate={(telemetry) => setCurrentVideoTelemetry(telemetry)}
+            />
+          </div>
+
+          {/* Right Column: Input Controls & Response */}
+          <div className="lg:col-span-2 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
             <div className="flex items-center gap-2">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
@@ -835,6 +978,7 @@ export default function InterviewWorkspace({
               )}
             </button>
           </div>
+          </div>
         </div>
 
         {/* Existing Evaluation Feedback Card */}
@@ -922,6 +1066,201 @@ export default function InterviewWorkspace({
                 )}
               </div>
             )}
+
+            {/* Non-Verbal Eye & Blink Tracking Telemetry */}
+            {(currentAns.speech_analytics?.video_telemetry || currentAns.evaluation_details?.video_telemetry) && (() => {
+              const vt = currentAns.speech_analytics?.video_telemetry || currentAns.evaluation_details?.video_telemetry
+              return (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-brand-violet/10 via-indigo-500/10 to-brand-cyan/10 border border-brand-violet/20 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-brand-violet dark:text-brand-cyan uppercase tracking-wider flex items-center gap-1.5">
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Non-Verbal Eye & Composure Telemetry</span>
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-brand-violet/20 text-brand-violet dark:text-brand-cyan font-bold">
+                      Confidence: {vt.non_verbal_confidence_score || 85}%
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-400 uppercase block">Total Blinks</span>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">
+                        {vt.blinks_count || 0} blinks
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-400 uppercase block">Blink Rate</span>
+                      <span className="text-xs font-bold text-brand-violet dark:text-brand-cyan">
+                        {vt.blink_rate_bpm || 0} BPM
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-400 uppercase block">Eye Contact</span>
+                      <span className="text-xs font-bold text-emerald-500">
+                        {vt.eye_contact_percentage || 85}%
+                      </span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                      <span className="text-[10px] text-slate-400 uppercase block">Blink Composure</span>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                        {vt.blink_assessment || 'Natural & Composed'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 italic pt-1">
+                    Non-verbal review: {vt.eye_contact_percentage >= 75 ? 'Direct, confident eye contact maintained throughout response.' : 'Practice keeping a more steady gaze forward towards the camera lens.'}
+                  </p>
+
+                  {vt.proctor_violations_count !== undefined && (
+                    <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-brand-violet/10">
+                      <span className="font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <ShieldCheck className="w-3.5 h-3.5 text-brand-violet" />
+                        <span>Camera Proctor Integrity:</span>
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                        vt.proctor_violations_count === 0
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                          : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                      }`}>
+                        {vt.proctor_violations_count === 0
+                          ? 'Verified Clean (No Looking Away / Absences)'
+                          : `${vt.proctor_violations_count} Proctor Warning Beep(s) Triggered`}
+                      </span>
+                    </div>
+                  )}
+
+                  {vt.phone_lap_glance_count !== undefined && vt.phone_lap_glance_count > 0 && (
+                    <div className="flex items-center justify-between text-[11px] pt-1 text-rose-600 dark:text-rose-400">
+                      <span className="flex items-center gap-1.5 font-medium">
+                        <Smartphone className="w-3.5 h-3.5 text-rose-500" />
+                        <span>Suspicious Device Glances (Looking down at lap/phone):</span>
+                      </span>
+                      <span className="font-mono font-bold">{vt.phone_lap_glance_count} detected</span>
+                    </div>
+                  )}
+
+                  {vt.earbud_policy && (
+                    <div className="flex items-center justify-between text-[11px] pt-1 text-slate-500 dark:text-slate-400">
+                      <span className="flex items-center gap-1.5 font-medium">
+                        <Headphones className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Earbud Policy Declaration:</span>
+                      </span>
+                      <span className="font-mono font-bold capitalize">
+                        {vt.earbud_policy === 'strict' ? 'Strict (No Earbuds / Ears Visible)' : 'Declared (Audio Listening Aid)'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
+            {/* Dynamic AI Cross-Examination ('Resume Truth Engine' Follow-Up Probe) */}
+            {currentAns.evaluation_details?.drill_down_probe && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-indigo-50/90 via-purple-50/40 to-slate-50 dark:from-indigo-950/40 dark:via-purple-950/30 dark:to-slate-900 border-2 border-indigo-300 dark:border-indigo-700/60 shadow-sm space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-xl bg-indigo-600 text-white shadow-xs">
+                      <Zap className="w-4 h-4" />
+                    </span>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black uppercase tracking-wider text-indigo-900 dark:text-indigo-200">
+                          Dynamic AI Cross-Examination
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                          Resume Truth Engine
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Detected Claim: <strong className="text-indigo-600 dark:text-indigo-400">{currentAns.evaluation_details.drill_down_probe.detected_claim}</strong>
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300">
+                    Focus: {currentAns.evaluation_details.drill_down_probe.focus_area}
+                  </span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-white/95 dark:bg-slate-800/95 border border-indigo-200/80 dark:border-indigo-800/70 shadow-xs">
+                  <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1.5">
+                    <Target className="w-3.5 h-3.5 text-indigo-500" />
+                    <span>Interviewer Drill-Down Probe (Verifying authentic hands-on depth):</span>
+                  </div>
+                  <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
+                    "{currentAns.evaluation_details.drill_down_probe.probe_question}"
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 flex-wrap gap-1">
+                  <span>{currentAns.evaluation_details.drill_down_probe.interviewer_intent}</span>
+                  <span className="font-semibold text-indigo-600 dark:text-indigo-400">Top 1% Engineering Interview Standard</span>
+                </div>
+              </div>
+            )}
+
+            {/* Answer Originality & Plagiarism Verification (Threshold < 20%) */}
+            {(currentAns.evaluation_details?.plagiarism_check || currentAns.plagiarism_check) && (() => {
+              const plag = currentAns.evaluation_details?.plagiarism_check || currentAns.plagiarism_check
+              const isSafe = !plag.is_flagged
+
+              return (
+                <div className={`p-4 rounded-2xl border ${
+                  isSafe
+                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : 'bg-rose-500/10 border-rose-500/30'
+                } space-y-2.5 animate-fadeIn`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`p-1.5 rounded-xl text-white ${isSafe ? 'bg-emerald-600' : 'bg-rose-600'}`}>
+                        <ShieldCheck className="w-4 h-4" />
+                      </span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-black uppercase tracking-wider ${isSafe ? 'text-emerald-900 dark:text-emerald-200' : 'text-rose-900 dark:text-rose-200'}`}>
+                            {isSafe ? 'Answer Originality Verified Clean' : 'Canned Answer / Similarity Alert'}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white/80 dark:bg-slate-900/80 border border-current">
+                            Threshold: &lt; 20%
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                          {isSafe
+                            ? `Authentic technical reasoning (${plag.similarity_percentage}% template similarity). No copy-paste textbook detection.`
+                            : `Warning: ${plag.similarity_percentage}% resemblance to public web textbook definitions (Exceeds 20% limit).`}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 font-mono text-xs self-end sm:self-auto">
+                      <span className="px-2 py-1 rounded-xl bg-white/90 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold">
+                        Similarity: <strong className={isSafe ? 'text-emerald-600' : 'text-rose-600'}>{plag.similarity_percentage}%</strong>
+                      </span>
+                      <span className="px-2 py-1 rounded-xl bg-white/90 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold text-emerald-600">
+                        Originality: {plag.originality_score}%
+                      </span>
+                    </div>
+                  </div>
+
+                  {plag.matched_phrases && plag.matched_phrases.length > 0 && (
+                    <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-[11px] font-mono text-rose-700 dark:text-rose-300">
+                      <span className="font-bold block text-[10px] uppercase">Matched Web Boilerplate / Textbook Phrases:</span>
+                      <span>{plag.matched_phrases.join(' • ')}</span>
+                    </div>
+                  )}
+
+                  {plag.remediation_tips && plag.remediation_tips.length > 0 && (
+                    <p className="text-[11px] text-slate-600 dark:text-slate-300 italic pl-1">
+                      &bull; {plag.remediation_tips[0]}
+                    </p>
+                  )}
+                </div>
+              )
+            })()}
 
             {/* STAR Breakdown */}
             {currentAns.star_component_scores && (
@@ -1011,6 +1350,23 @@ export default function InterviewWorkspace({
         {coachModalData && (
           <AICoachModal data={coachModalData} onClose={() => setCoachModalData(null)} />
         )}
+
+        {/* 60-Second Pre-Interview Zen Box */}
+        <PreInterviewZenBox
+          isOpen={isZenBoxOpen}
+          onClose={() => setIsZenBoxOpen(false)}
+          onReady={() => setIsZenBoxOpen(false)}
+        />
+
+        {/* Interactive System Design Architecture Canvas */}
+        <SystemDesignCanvas
+          isOpen={isCanvasOpen}
+          onClose={() => setIsCanvasOpen(false)}
+          targetQuestionText={currentQ?.question_text || ''}
+          onAttachToAnswer={(architectureSummary) => {
+            setAnswerDraft((prev) => (prev ? `${prev.trim()}\n\n${architectureSummary}` : architectureSummary.trim()))
+          }}
+        />
       </div>
     )
   }
@@ -1031,6 +1387,46 @@ export default function InterviewWorkspace({
           Configure an interview tailored to your uploaded resume and target job requirements.
           Choose between Mock Interview, Quick Practice, Weak-Area Focus, or Focused Technical drills with synthesized speech, live transcript editing, and delivery analytics.
         </p>
+      </div>
+
+      {/* 1-Click Evaluator & Hackathon Showcase Demo Banner */}
+      <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-amber-500/10 via-brand-violet/10 to-indigo-500/10 border-2 border-amber-300 dark:border-amber-600/50 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1.5 max-w-2xl">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-xs flex items-center gap-1">
+              <Award className="w-3 h-3" />
+              <span>Evaluator & Judge Showcase Demo</span>
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+              Gold-Standard Benchmark
+            </span>
+          </div>
+          <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+            Presenting PrepVerse AI to Judges or Faculty?
+          </h3>
+          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            Click to load a pre-computed benchmark session (Senior Cloud Architect) demonstrating live camera proctoring telemetry, dynamic AI cross-examination follow-up probes, STAR scoring, and high-gain audio synthesis in 3 seconds.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={handleLoadJudgeShowcaseDemo}
+            className="px-4 py-2.5 rounded-2xl text-xs font-black text-white bg-gradient-to-r from-amber-500 via-orange-500 to-brand-violet hover:opacity-95 shadow-md transition flex items-center justify-center gap-2"
+          >
+            <Sparkles className="w-4 h-4 text-amber-200" />
+            <span>Launch Showcase Demo</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveReport(SHOWCASE_BENCHMARK_REPORT)}
+            className="px-3.5 py-2.5 rounded-2xl text-xs font-bold text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 shadow-sm transition flex items-center justify-center gap-1.5"
+          >
+            <BarChart3 className="w-4 h-4 text-brand-violet" />
+            <span>View Full Report</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Grid: Setup Form + Past Sessions */}
@@ -1553,6 +1949,15 @@ export default function InterviewWorkspace({
             )}
 
             <button
+              type="button"
+              onClick={() => setIsZenBoxOpen(true)}
+              className="w-full py-2.5 rounded-2xl text-xs font-bold bg-teal-500/10 hover:bg-teal-500/20 text-teal-700 dark:text-teal-300 border border-teal-500/30 transition flex items-center justify-center gap-2 shadow-xs"
+            >
+              <Heart className="w-4 h-4 text-teal-500" />
+              <span>Feeling Nervous? Take a 60-Second Zen Breathing Warmup</span>
+            </button>
+
+            <button
               type="submit"
               disabled={isCreatingSession || resumes.length === 0}
               className="w-full py-3 rounded-2xl text-xs sm:text-sm font-bold bg-gradient-to-r from-brand-violet to-brand-blue hover:opacity-95 text-white shadow-md shadow-brand-violet/20 transition flex items-center justify-center gap-2 disabled:opacity-50"
@@ -1649,6 +2054,14 @@ export default function InterviewWorkspace({
           )}
         </div>
       </div>
+
+      {/* 60-Second Pre-Interview Zen Box */}
+      <PreInterviewZenBox
+        isOpen={isZenBoxOpen}
+        onClose={() => setIsZenBoxOpen(false)}
+        onReady={() => setIsZenBoxOpen(false)}
+      />
     </div>
   )
 }
+

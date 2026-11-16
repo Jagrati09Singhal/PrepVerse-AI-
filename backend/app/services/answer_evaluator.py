@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional, List, Tuple
 from app.models.enums import QuestionType, QuestionDifficulty
 from app.services.ai_provider import get_ai_provider
 from app.services.speech_analytics import compute_speech_analytics
+from app.services.plagiarism_checker import check_plagiarism
 
 logger = logging.getLogger(__name__)
 
@@ -319,6 +320,103 @@ def evaluate_technical_situational(
     return content_score, strengths, missing, suggestions, feedback_text
 
 
+# Cross-examination probe catalog for dynamic follow-ups
+PROBE_CATALOG = [
+    {
+        "pattern": r"\b(redis|caching|memcached|in-memory cache)\b",
+        "detected_claim": "In-memory caching & low-latency data access (Redis/Memcached)",
+        "focus_area": "Cache Invalidation & Thundering Herd Defense",
+        "probe_question": "You mentioned using caching. How did you handle cache stampedes (thundering herd) during key expiration, and what eviction policy (e.g. volatile-lru) did you configure for memory pressure?",
+    },
+    {
+        "pattern": r"\b(kafka|rabbitmq|sqs|event-driven|pub-sub|pubsub|message queue)\b",
+        "detected_claim": "Asynchronous messaging & event streaming (Kafka/RabbitMQ)",
+        "focus_area": "Idempotency & Poison-Pill DLQ Handling",
+        "probe_question": "Since you utilized asynchronous message queuing, how did you guarantee idempotent consumer processing and what was your retry/backoff policy for poison-pill messages?",
+    },
+    {
+        "pattern": r"\b(postgres|postgresql|mysql|sql|indexing|foreign key|acid)\b",
+        "detected_claim": "Relational database schema & query performance (PostgreSQL/MySQL)",
+        "focus_area": "Query Execution Plans & Locking Under Load",
+        "probe_question": "You highlighted relational database persistence. What execution plan metric (EXPLAIN ANALYZE) did you monitor, and how did you prevent long-running table locks during schema changes?",
+    },
+    {
+        "pattern": r"\b(docker|kubernetes|k8s|container|containers|pod|pods)\b",
+        "detected_claim": "Container orchestration & cloud scaling (Docker/Kubernetes)",
+        "focus_area": "Liveness/Readiness Probes & Resource Limits",
+        "probe_question": "Regarding your containerized setup, how did you configure Kubernetes liveness vs readiness probes and memory limits to prevent cascading restart loops during traffic spikes?",
+    },
+    {
+        "pattern": r"\b(jwt|token|oauth|authentication|auth|authorization|rbac)\b",
+        "detected_claim": "Token authentication & identity security (JWT/OAuth)",
+        "focus_area": "Immediate Token Revocation & Session Replay",
+        "probe_question": "You mentioned token-based authentication. If an active JWT access token must be immediately revoked before its TTL expires, what revocation list or token-blacklist pattern would you implement?",
+    },
+    {
+        "pattern": r"\b(microservices?|fastapi|django|flask|spring|express|rest api|endpoints?)\b",
+        "detected_claim": "Backend service & API endpoint architecture",
+        "focus_area": "Circuit Breakers & Cascading Degradation",
+        "probe_question": "In your service architecture, how did you implement circuit breaking or timeout budgets to ensure a slow downstream dependency doesn't exhaust all available worker threads?",
+    },
+    {
+        "pattern": r"\b(react|vue|angular|redux|nextjs|next\.js|frontend)\b",
+        "detected_claim": "Client-side state & UI rendering architecture",
+        "focus_area": "Render Optimization & Async Race Conditions",
+        "probe_question": "On the client side, how did you prevent race conditions when rapid concurrent user interactions triggered overlapping asynchronous API requests?",
+    },
+]
+
+
+def generate_drill_down_probe(
+    question_text: str,
+    answer_text: str,
+    target_skill: Optional[str] = None,
+    question_type: Optional[QuestionType] = None,
+) -> Dict[str, Any]:
+    """
+    Dynamic AI Cross-Examination ('Resume Truth Engine'):
+    Scans candidate's actual answer for architectural claims and produces
+    a rigorous follow-up interviewer probe to verify authentic hands-on depth.
+    """
+    text = answer_text or ""
+
+    for item in PROBE_CATALOG:
+        if re.search(item["pattern"], text, re.IGNORECASE):
+            return {
+                "detected_claim": item["detected_claim"],
+                "focus_area": item["focus_area"],
+                "probe_question": item["probe_question"],
+                "challenge_level": "Deep Dive Follow-Up",
+                "interviewer_intent": "Verifies whether candidate actually implemented this in production or only knows textbook buzzwords.",
+            }
+
+    if question_type == QuestionType.BEHAVIORAL:
+        return {
+            "detected_claim": "Project ownership & outcome delivery",
+            "focus_area": "Scope Negotiation & Executive Trade-offs",
+            "probe_question": "Reflecting on this experience: if executive leadership had cut your timeline or headcount by 40%, what specific scope or quality guardrail would you have negotiated to cut first?",
+            "challenge_level": "Behavioral Stress Probe",
+            "interviewer_intent": "Tests realistic prioritization under organizational stress.",
+        }
+
+    if target_skill:
+        return {
+            "detected_claim": f"Hands-on execution with {target_skill}",
+            "focus_area": "Production Failure Modes & Observability",
+            "probe_question": f"Digging deeper into your implementation of {target_skill}: what failure mode did you consider highest risk in production, and what metric or telemetry alert did you put in place to catch it early?",
+            "challenge_level": "Technical Verification",
+            "interviewer_intent": "Assesses production readiness and observability practices.",
+        }
+
+    return {
+        "detected_claim": "Technical reasoning & system design trade-offs",
+        "focus_area": "Alternative Evaluation & Operational Blindspots",
+        "probe_question": "What alternative architecture or design approach did you initially evaluate before choosing this solution, and what fatal flaw or trade-off made you reject it?",
+        "challenge_level": "Architectural Justification",
+        "interviewer_intent": "Evaluates candidate's critical thinking and trade-off evaluation.",
+    }
+
+
 def evaluate_answer(
     question_text: str,
     question_type: QuestionType,
@@ -335,6 +433,7 @@ def evaluate_answer(
     - Evaluates communication score based strictly on text-visible qualities.
     - Evaluates content score with STAR rubric if behavioral, or technical/situational rubric if non-behavioral.
     - Computes evidence-based speech analytics (word count, filler rate, speaking pace, pauses).
+    - Generates dynamic AI cross-examination follow-up probe.
     - Uses configured AI provider if available; falls back immediately to deterministic evaluator.
     """
     # 1. Text communication score & speech analytics
@@ -343,6 +442,20 @@ def evaluate_answer(
         transcript=answer_text,
         duration_seconds=duration_seconds,
         pause_data=pause_data,
+    )
+
+    drill_down_probe = generate_drill_down_probe(
+        question_text=question_text,
+        answer_text=answer_text,
+        target_skill=target_skill,
+        question_type=question_type,
+    )
+
+    # Plagiarism and template similarity check (Threshold: strictly LESS THAN 20.0%)
+    plagiarism_check = check_plagiarism(
+        content_text=answer_text,
+        context_type="interview",
+        custom_threshold=20.0,
     )
 
     # 2. Check for AI provider evaluation
@@ -363,11 +476,21 @@ def evaluate_answer(
                 ai_eval["communication_score"] = comm_score
                 ai_eval["filler_word_count"] = filler_count
                 ai_eval["speech_analytics"] = speech_analytics
+                ai_suggestions = list(ai_eval.get("suggestions", []))
+                if plagiarism_check["is_flagged"]:
+                    ai_suggestions.insert(
+                        0,
+                        f"Originality Warning: Response exhibits {plagiarism_check['similarity_percentage']}% template similarity (Threshold: < 20.0%). Frame answers around your unique engineering trade-offs rather than textbook definitions.",
+                    )
+                ai_eval["suggestions"] = ai_suggestions
+                ai_eval["plagiarism_check"] = plagiarism_check
                 ai_eval["evaluation_details"] = {
                     "strengths": ai_eval.get("strengths", []),
                     "missing_elements": ai_eval.get("missing_elements", []),
-                    "suggestions": ai_eval.get("suggestions", []),
+                    "suggestions": ai_suggestions,
                     "communication_breakdown": comm_breakdown,
+                    "drill_down_probe": drill_down_probe,
+                    "plagiarism_check": plagiarism_check,
                     "engine": "gemini",
                 }
                 return ai_eval
@@ -385,12 +508,19 @@ def evaluate_answer(
             question_text, answer_text, question_type, difficulty, rubric_criteria, target_skill
         )
 
+    if plagiarism_check["is_flagged"]:
+        suggestions.insert(
+            0,
+            f"Originality Warning: Response exhibits {plagiarism_check['similarity_percentage']}% template similarity (Threshold: < 20.0%). Frame answers around your unique engineering trade-offs rather than textbook definitions.",
+        )
+
     return {
         "content_score": content_score,
         "communication_score": comm_score,
         "filler_word_count": filler_count,
         "star_component_scores": star_scores,
         "speech_analytics": speech_analytics,
+        "plagiarism_check": plagiarism_check,
         "feedback_text": feedback,
         "strengths": strengths,
         "missing_elements": missing,
@@ -400,6 +530,8 @@ def evaluate_answer(
             "missing_elements": missing,
             "suggestions": suggestions,
             "communication_breakdown": comm_breakdown,
+            "drill_down_probe": drill_down_probe,
+            "plagiarism_check": plagiarism_check,
             "engine": "deterministic",
         },
     }

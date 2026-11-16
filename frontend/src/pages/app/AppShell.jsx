@@ -11,11 +11,13 @@ import JobWorkspace from '../../components/JobWorkspace'
 import SettingsPage from './SettingsPage'
 import ProfilePage from './ProfilePage'
 import AdminControlPage from './AdminControlPage'
+import SiriAICompanion from '../../components/SiriAICompanion'
 import { useRouter, useParams, useLocation } from '../../context/RouterContext'
 import { useAuth } from '../../context/AuthContext'
 import { ENDPOINTS } from '../../config/api'
 import { X, LayoutDashboard, PlayCircle, Sparkles, Compass, TrendingUp, FileText, Briefcase, Sliders, User, ShieldCheck } from 'lucide-react'
 import Logo from '../../components/Logo'
+import ErrorBoundary from '../../components/ErrorBoundary'
 
 const TAB_ROUTES = {
   overview: '/app/dashboard',
@@ -157,7 +159,11 @@ export default function AppShell({ view: explicitView }) {
   ]
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-[#080C15] text-slate-900 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen flex bg-slate-50 dark:bg-[#070A12] text-slate-900 dark:text-slate-100 transition-colors relative">
+      {/* Ambient Atmospheric Blue/Cyan/Violet Glows */}
+      <div className="fixed top-0 left-1/4 w-[600px] h-[400px] bg-gradient-to-br from-brand-violet/10 via-brand-cyan/8 to-transparent rounded-full blur-3xl pointer-events-none z-0" />
+      <div className="fixed top-20 right-10 w-[500px] h-[500px] bg-gradient-to-bl from-brand-blue/10 via-brand-violet/8 to-transparent rounded-full blur-3xl pointer-events-none z-0" />
+
       {/* Desktop Collapsible Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -173,14 +179,14 @@ export default function AppShell({ view: explicitView }) {
           onClick={() => setMobileMenuOpen(false)}
         >
           <div
-            className="fixed inset-y-0 left-0 w-72 bg-white dark:bg-[#0A0F1D] shadow-2xl p-4 flex flex-col z-50 animate-fadeIn"
+            className="fixed inset-y-0 left-0 w-72 bg-white dark:bg-[#0F172A] border-r border-slate-200 dark:border-slate-800 shadow-2xl p-4 flex flex-col z-50 animate-fadeIn"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
               <Logo variant="compact" size="md" />
               <button
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -196,7 +202,7 @@ export default function AppShell({ view: explicitView }) {
                     onClick={() => handleSelectTab(item.id)}
                     className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
                       isActive
-                        ? 'bg-gradient-to-r from-brand-violet to-brand-cyan text-white shadow-sm'
+                        ? 'bg-gradient-to-r from-brand-violet to-brand-blue text-white shadow-sm'
                         : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
@@ -222,64 +228,72 @@ export default function AppShell({ view: explicitView }) {
 
         {/* Tab Content Canvas */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          {activeTab === 'overview' && (
-            <Dashboard
-              onSelectTab={handleSelectTab}
-              onLaunchPractice={handleLaunchPractice}
-            />
-          )}
+          <ErrorBoundary key={activeTab}>
+            {activeTab === 'overview' && (
+              <Dashboard
+                onSelectTab={handleSelectTab}
+                onLaunchPractice={handleLaunchPractice}
+              />
+            )}
 
-          {activeTab === 'interviews' && (
-            <InterviewWorkspace
-              initialPracticeParams={practiceLaunchParams}
-              onResetPracticeParams={() => setPracticeLaunchParams(null)}
-              initialSessionId={sessionId}
-              initialViewMode={isReportView ? 'report' : 'session'}
-            />
-          )}
+            {activeTab === 'interviews' && (
+              <InterviewWorkspace
+                initialPracticeParams={practiceLaunchParams}
+                onResetPracticeParams={() => setPracticeLaunchParams(null)}
+                initialSessionId={sessionId}
+                initialViewMode={isReportView ? 'report' : 'session'}
+              />
+            )}
 
-          {activeTab === 'coach' && (
-            <AICoachHub
-              onLaunchPractice={handleLaunchPractice}
-            />
-          )}
+            {activeTab === 'coach' && (
+              <AICoachHub
+                onLaunchPractice={handleLaunchPractice}
+              />
+            )}
 
-          {activeTab === 'roadmap' && (
-            <RoadmapPlanner
-              onLaunchPractice={handleLaunchPractice}
-            />
-          )}
+            {activeTab === 'roadmap' && (
+              <RoadmapPlanner
+                onLaunchPractice={handleLaunchPractice}
+              />
+            )}
 
-          {activeTab === 'analytics' && (
-            <AnalyticsDashboard
-              onLaunchPractice={handleLaunchPractice}
-            />
-          )}
+            {activeTab === 'analytics' && (
+              <AnalyticsDashboard
+                onLaunchPractice={handleLaunchPractice}
+              />
+            )}
 
-          {activeTab === 'resumes' && (
-            <ResumeWorkspace
-              onResumesUpdated={(resumes) => setResumesList(resumes)}
-              onLaunchPractice={handleLaunchPractice}
-            />
-          )}
+            {activeTab === 'resumes' && (
+              <ResumeWorkspace
+                onResumesUpdated={(resumes) => setResumesList(resumes)}
+                onLaunchPractice={handleLaunchPractice}
+              />
+            )}
 
-          {activeTab === 'job_analysis' && (
-            <JobWorkspace resumes={resumesList} />
-          )}
+            {activeTab === 'job_analysis' && (
+              <JobWorkspace resumes={resumesList} />
+            )}
 
-          {activeTab === 'settings' && (
-            <SettingsPage />
-          )}
+            {activeTab === 'settings' && (
+              <SettingsPage />
+            )}
 
-          {activeTab === 'profile' && (
-            <ProfilePage />
-          )}
+            {activeTab === 'profile' && (
+              <ProfilePage />
+            )}
 
-          {activeTab === 'admin' && (
-            <AdminControlPage />
-          )}
+            {activeTab === 'admin' && (
+              <AdminControlPage />
+            )}
+          </ErrorBoundary>
         </main>
       </div>
+
+      {/* Floating 24/7 Siri-like AI Placement Companion & Study Confidant */}
+      <SiriAICompanion
+        onOpenInterview={(params) => handleLaunchPractice(params)}
+        onOpenTargetSkills={() => handleSelectTab('overview')}
+      />
     </div>
   )
 }

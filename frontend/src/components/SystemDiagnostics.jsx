@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { Server, Database, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react'
 import { API_BASE_URL } from '../config/api'
 
@@ -80,3 +80,4 @@ export default function SystemDiagnostics({ health, onRefresh }) {
     </div>
   )
 }
+

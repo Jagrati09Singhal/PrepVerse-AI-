@@ -42,6 +42,14 @@ async def lifespan(app: FastAPI):
         except Exception as mig_exc:
             import logging
             logging.getLogger("uvicorn").debug(f"Table migration check note: {mig_exc}")
+
+        # Seed demo account for seamless one-click portal evaluation
+        try:
+            from app.core.seeder import seed_demo_account
+            seed_demo_account()
+        except Exception as seed_exc:
+            import logging
+            logging.getLogger("uvicorn").debug(f"Demo seed note: {seed_exc}")
     except Exception as exc:
         import logging
         logging.getLogger("uvicorn").warning(f"Database initialization: {exc}")
