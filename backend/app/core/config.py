@@ -14,10 +14,10 @@ class Settings(BaseSettings):
     PORT: int = 8000
 
     # Database Configuration
-    DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/interviewai_dev"
+    DATABASE_URL: str = "postgresql+psycopg://postgres:postgres@localhost:5432/prepverse_dev"
 
     # Security & JWT Configuration
-    JWT_SECRET_KEY: str = "interviewai-dev-secret-key-must-be-changed-in-production-random-64-bytes"
+    JWT_SECRET_KEY: str = "prepverse-dev-secret-key-must-be-changed-in-production-random-64-bytes"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     BCRYPT_ROUNDS: int = 12
@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
         "http://localhost:3000",
     ]
 

@@ -1,3 +1,7 @@
+"""
+PrepVerse AI — High-Resolution Publication System Architecture Generator (Dark Theme)
+Renders Figure 4.2: End-to-End Modular Component Hierarchy & Multi-Modal Pipelines.
+"""
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.patches import FancyBboxPatch, ArrowStyle

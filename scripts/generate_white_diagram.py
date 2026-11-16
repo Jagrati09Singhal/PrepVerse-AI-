@@ -1,3 +1,7 @@
+"""
+PrepVerse AI — High-Resolution Publication System Architecture Generator (Light/Print Theme)
+Renders Figure 4.2 White: Crisp, high-contrast architecture diagram for academic print/defense.
+"""
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyBboxPatch
 import os

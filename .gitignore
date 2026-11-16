@@ -1,3 +1,7 @@
+# ==============================================================================
+# PrepVerse AI — Git Ignore Configuration
+# ==============================================================================
+
 # Environment & Secret files
 .env
 .env.local
@@ -34,6 +38,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.vite/
 
 # IDE & Editor files
 .vscode/
@@ -46,6 +51,7 @@ Thumbs.db
 # Database files
 *.sqlite3
 *.db
+prepverse_dev.db
 
 # Server logs
 *.log
@@ -55,5 +61,9 @@ frontend_server.log
 # Alembic cache
 alembic/versions/__pycache__/
 
-
-.vite/
+# Temporary & Loose Presentation Artifacts
+poster_*.html
+poster_*.pdf
+poster_preview*.png
+extracted_*.png
+prepverse_*_poster.jpg

@@ -1,3 +1,8 @@
+# ==============================================================================
+# PrepVerse AI — Free 1-Click Cloud Deployment Configuration (Render)
+# Blueprint: Python Web Service hosting FastAPI Backend + React/Vite SPA
+# ==============================================================================
+
 services:
   - type: web
     name: prepverse-ai
@@ -6,6 +11,7 @@ services:
     startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     plan: free
     region: oregon
+    autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
@@ -13,9 +19,17 @@ services:
         value: 20.12.0
       - key: APP_NAME
         value: "PrepVerse AI"
+      - key: ENVIRONMENT
+        value: production
+      - key: AI_PROVIDER
+        value: deterministic
       - key: DATABASE_URL
         value: "sqlite:///./prepverse_dev.db"
       - key: SECRET_KEY
         generateValue: true
       - key: ADMIN_PASSCODE
         value: "PrepVerseAdmin2026!"
+      - key: CORS_ORIGINS
+        value: '["*"]'
+      - key: TAGLINE
+        value: "Prepare Smarter. Practice Deeper. Become Interview-Ready."

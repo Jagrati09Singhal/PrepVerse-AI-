@@ -1,3 +1,7 @@
+"""
+PrepVerse AI — Engineering Capstone System Walkthrough & Defense Dossier PDF Generator
+Builds the 5-page publication-quality project walkthrough and viva dossier.
+"""
 import os
 import pymupdf
 
@@ -107,7 +111,7 @@ def build_genuine_walkthrough_pdf():
     p1.draw_rect(pymupdf.Rect(L_MARGIN, y, R_MARGIN, y + 50), color=C_CARD_BORDER, fill=C_WHITE)
     p1.insert_text(pymupdf.Point(L_MARGIN + 12, y + 18), "SYSTEM VERIFICATION METRICS AT A GLANCE", fontsize=9, fontname="helv", color=C_NAVY)
     metrics_line = (
-        "Automated Tests: 120 / 120 Passed in 4.19s (pytest)  |  Vite Production Build: 1,607 Modules Clean (0 Errors)\n"
+        "Automated Tests: 127 / 127 Passed in 5.98s (pytest)  |  Vite Production Build: 1,615 Modules Clean (0 Errors)\n"
         "Local Launcher: Unified single-command python app.py with automatic Windows port-freeing (5173 / 8000)"
     )
     p1.insert_textbox(pymupdf.Rect(L_MARGIN + 12, y + 24, R_MARGIN - 12, y + 46), metrics_line, fontsize=8.2, fontname="helv", color=C_BLUE)
@@ -334,9 +338,9 @@ def build_genuine_walkthrough_pdf():
 
     viva_qa = [
         ("Q: How did you validate system accuracy and reliability?",
-         "A: We validated via an automated pytest suite of 120 tests (100% pass in 4.19s) covering authentication, "
+         "A: We validated via an automated pytest suite of 127 tests (100% pass in 5.98s) covering authentication, "
          "PyMuPDF extraction, adaptive question steppers, STAR rubrics, and speech analytics. Front-end builds cleanly "
-         "in 3.8s across 1,607 modules."),
+         "in 5.8s across 1,615 modules."),
         ("Q: What are the current architectural limits and how would you scale to 50,000 users?",
          "A: Current implementation utilizes synchronous SQLite/PostgreSQL connections with in-process audio handling. "
          "To scale for production: 1) Offload speech transcription to Celery workers with Redis message broker; "
